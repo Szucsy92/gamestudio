@@ -28,6 +28,8 @@ export interface RemovalItem {
   apply: (R: Remover) => boolean;
   /** Is it gone in this state (deleted itself or by something else)? */
   probe?: (R: Remover) => boolean;
+  /** Where the item's code is (objects and parts): source ranges across files, to list the numbers inside. */
+  spans?: () => { path: string; s: number; e: number }[];
 }
 
 export interface TreeNode {
@@ -140,6 +142,19 @@ function rootsGone(P: Program, roots: RootDef[], R: Remover): boolean {
 
 function rootsExist(P: Program, roots: RootDef[]): boolean {
   return roots.some((r) => ("decl" in r ? declsOf(P, r).length > 0 : !!locate(P, r)));
+}
+
+/** Source ranges of the roots' statements/declarations (Simulation.kt and GameRenderer.kt alike). */
+function rootSpans(P: Program, roots: RootDef[]): { path: string; s: number; e: number }[] {
+  const out: { path: string; s: number; e: number }[] = [];
+  const add = (st: Stmt | undefined) => {
+    if (st) out.push({ path: st.file.path, s: st.file.toks[st.a]!.s, e: st.file.toks[st.b - 1]!.e });
+  };
+  for (const r of roots) {
+    if ("decl" in r) for (const d of declsOf(P, r)) add(d.stmt);
+    else add(locate(P, r));
+  }
+  return out;
 }
 
 function whereOf(P: Program, roots: RootDef[]): string | undefined {
@@ -387,13 +402,13 @@ export function catalogFor(model: Model): Catalog {
   }
   for (const o of OBJECTS) {
     if (!rootsExist(P, o.roots)) continue;
-    const item: RemovalItem = { id: `o:${o.key}`, kind: "object", label: o.label, element: o.element, parent: elementNodes.get(o.element)?.item.id, preview: o.preview, where: whereOf(P, o.roots), apply: (R) => applyRoots(P, o.roots, R), probe: (R) => rootsGone(P, o.roots, R) };
+    const item: RemovalItem = { id: `o:${o.key}`, kind: "object", label: o.label, element: o.element, parent: elementNodes.get(o.element)?.item.id, preview: o.preview, where: whereOf(P, o.roots), apply: (R) => applyRoots(P, o.roots, R), probe: (R) => rootsGone(P, o.roots, R), spans: () => rootSpans(P, o.roots) };
     items.set(item.id, item);
     const node: TreeNode = { item, children: [] };
     objectNodes.set(o.key, node);
     for (const p of o.parts) {
       if (!rootsExist(P, p.roots)) continue;
-      const pi: RemovalItem = { id: `p:${p.key}`, kind: "part", label: p.label, element: o.element, parent: item.id, preview: p.preview, where: whereOf(P, p.roots), apply: (R) => applyRoots(P, p.roots, R), probe: (R) => rootsGone(P, p.roots, R) };
+      const pi: RemovalItem = { id: `p:${p.key}`, kind: "part", label: p.label, element: o.element, parent: item.id, preview: p.preview, where: whereOf(P, p.roots), apply: (R) => applyRoots(P, p.roots, R), probe: (R) => rootsGone(P, p.roots, R), spans: () => rootSpans(P, p.roots) };
       items.set(pi.id, pi);
       node.children.push({ item: pi, children: [] });
     }
@@ -657,4 +672,28 @@ export function itemLabel(cat: Catalog, id: string, model: Model, labels?: Map<s
     return l ?? lit?.decl ?? (lit ? `${lit.file.split("/").pop()}:${lit.line}` : id);
   }
   return id;
+}
+
+const litCache = new WeakMap<Catalog, Map<string, string[]>>();
+
+/** Ids of the numbers (any file, in code order) inside an object's or part's code. Empty for other items. */
+export function itemLiteralIds(cat: Catalog, model: Model, id: string): string[] {
+  let m = litCache.get(cat);
+  if (!m) litCache.set(cat, (m = new Map()));
+  const hit = m.get(id);
+  if (hit) return hit;
+  const spans = cat.items.get(id)?.spans?.() ?? [];
+  const out: string[] = [];
+  if (spans.length) {
+    for (const l of model.lits.values()) {
+      if (l.glsl) continue;
+      if (spans.some((sp) => sp.path === l.file && l.start >= sp.s && l.end <= sp.e)) out.push(l.id);
+    }
+    out.sort((a, b) => {
+      const x = model.lits.get(a)!, y = model.lits.get(b)!;
+      return x.file === y.file ? x.start - y.start : x.file.localeCompare(y.file);
+    });
+  }
+  m.set(id, out);
+  return out;
 }

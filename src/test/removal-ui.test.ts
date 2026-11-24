@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildModel, labelIndex } from "@/studio/catalog";
 import { fileDiffs } from "@/studio/diff";
-import { kindOfId, previewEdits, removedViews, splitByObject, tryRemove, validRemovals } from "@/studio/removal-state";
+import { extraRows, kindOfId, previewEdits, removedViews, splitByObject, tryRemove, validRemovals } from "@/studio/removal-state";
 import { catalogFor, computeRemoval, valueItemId } from "@/studio/removals";
 
 const kt = (f: string) => readFileSync(path.resolve(__dirname, "../kotlin", f), "utf8");
@@ -112,5 +112,24 @@ describe("deleting from the workbench", () => {
     expect(rest.some((g) => g.label === "Kőkapu")).toBe(false);
     // an object this repo lacks takes no groups
     expect(splitByObject(gates.groups, new Set()).byObject.size).toBe(0);
+  });
+
+  it("lists every number of a part's code as sliders, across files, minus the curated ones", () => {
+    const shown = new Set<string>();
+    for (const key of ["ring.count", "ring.spin", "ring.r", "ring.y", "ring.w", "ring.h"]) for (const id of model.curated.get(key) ?? []) shown.add(id);
+    // the fog of the fairy ring (GameRenderer.kt bGlowFog.add) had no sliders next to the ring's own values
+    const fog = extraRows(model, cat, "p:ring.glow", shown);
+    expect(fog.length).toBeGreaterThanOrEqual(6);
+    expect(fog.every((r) => r.ids.length === 1 && r.code)).toBe(true);
+    expect(fog.some((r) => r.label.startsWith("bGlowFog.add"))).toBe(true);
+    const values = fog.map((r) => model.lits.get(r.ids[0]!)!.value);
+    expect(values).toContain(2.6);
+    expect(values).toContain(0.9);
+    // curated numbers are not listed twice, and every row is a real literal of the repo
+    const again = extraRows(model, cat, "p:ring.glow", new Set([...shown, ...fog.map((r) => r.ids[0]!)]));
+    expect(again).toEqual([]);
+    expect(fog.every((r) => model.lits.has(r.ids[0]!))).toBe(true);
+    // items without code of their own (animations, elements) list nothing
+    expect(extraRows(model, cat, "e:gates", shown)).toEqual([]);
   });
 });

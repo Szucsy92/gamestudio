@@ -198,7 +198,7 @@ export function treeEdits(base: TreeBase, species: SpeciesParams, lits: Map<stri
   return out;
 }
 
-function rowFor(l: Literal, label: string, unit?: string): Row {
+export function rowFor(l: Literal, label: string, unit?: string): Row {
   return { key: l.id, label, unit, kind: l.kind === "hex" ? "color" : "num", ids: [l.id], range: autoRange(l), code: true };
 }
 

@@ -3,8 +3,8 @@
  * apply, the 3D preview values of deleted numbers, and which value groups belong under which object. Pure functions,
  * no React, so they are tested without a browser.
  */
-import type { Group, Model } from "./catalog";
-import { computeRemoval, itemLabel, valueItemId, type Catalog, type ItemKind, type RemovalState } from "./removals";
+import { rowFor, type Group, type Model, type Row } from "./catalog";
+import { computeRemoval, itemLabel, itemLiteralIds, valueItemId, type Catalog, type ItemKind, type RemovalState } from "./removals";
 import { OBJECTS } from "./structure";
 
 export interface RemoveResult {
@@ -108,6 +108,41 @@ export function splitByObject(groups: Group[], present: ReadonlySet<string>): { 
     else byObject.set(key, [...(byObject.get(key) ?? []), g]);
   }
   return { byObject, rest };
+}
+
+/** "bGlowFog.add · 3. érték": the call a number is an argument of, or null outside a call. */
+function callLabel(src: string, pos: number): string | null {
+  let depth = 0;
+  let commas = 0;
+  for (let i = pos - 1; i >= 0 && pos - i < 600; i--) {
+    const c = src[i];
+    if (c === ")" || c === "]") depth++;
+    else if (c === "(" || c === "[") {
+      if (depth > 0) depth--;
+      else if (c === "(") {
+        const m = /([A-Za-z_][\w.]*)\s*$/.exec(src.slice(Math.max(0, i - 48), i));
+        return m && !/^(for|if|while|when|return)$/.test(m[1]!) ? `${m[1]} · ${commas + 1}. érték` : null;
+      } else return null;
+    } else if (depth === 0 && (c === "{" || c === "}" || c === ";")) return null;
+    else if (depth === 0 && c === ",") commas++;
+  }
+  return null;
+}
+
+/**
+ * Sliders for every number in the code of an object or part (in any file: the renderer's fog and glow as well as
+ * the simulation's values), minus the ones already shown as curated rows (`shown`). Labelled by the call they sit in.
+ */
+export function extraRows(model: Model, cat: Catalog, id: string, shown: ReadonlySet<string>): Row[] {
+  const rows: Row[] = [];
+  for (const lid of itemLiteralIds(cat, model, id)) {
+    if (shown.has(lid)) continue;
+    const l = model.lits.get(lid);
+    if (!l) continue;
+    const src = model.files.get(l.file)?.src ?? "";
+    rows.push(rowFor(l, callLabel(src, l.start) ?? l.decl ?? `${l.line}. sor`));
+  }
+  return rows;
 }
 
 export { valueItemId };
