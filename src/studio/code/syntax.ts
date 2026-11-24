@@ -530,7 +530,7 @@ let DECL_ID = 0;
 
 function collectDecls(f: FileSyntax) {
   const toks = f.toks;
-  const ownerOf = (st: Stmt): { owner?: string; ctorOwner?: string } => {
+  const ownerOf = (st: Stmt): { owner?: string | undefined; ctorOwner?: string | undefined } => {
     const bl = st.block;
     if (bl.kind !== "class" && bl.kind !== "enum") return {};
     const cls = bl.parent;

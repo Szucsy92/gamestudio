@@ -146,7 +146,7 @@ export class Remover {
   }
 
   /** Deletes one statement (and whatever it declares). */
-  deleteStmt(st: Stmt, fromDecl = false) {
+  deleteStmt(st: Stmt, fromDecl = false): void {
     if (this.stmtDead(st)) return;
     const f = st.file;
     const toks = f.toks;
@@ -207,7 +207,7 @@ export class Remover {
   }
 
   /** The reference at token `tok` is gone: remove the smallest piece of code that holds it. */
-  absentAt(f: FileSyntax, tok: number) {
+  absentAt(f: FileSyntax, tok: number): void {
     if (this.isDead(f, tok)) return;
     const toks = f.toks;
     const st = this.innermost(f, tok);
@@ -574,7 +574,7 @@ export class Remover {
     return !!m && m[1]!.trim().endsWith("?");
   }
 
-  private escalate(o: { file: FileSyntax; tok: number } | { fun: Decl }) {
+  private escalate(o: { file: FileSyntax; tok: number } | { fun: Decl }): void {
     if ("fun" in o) return this.deleteFunDecl(o.fun);
     return this.absentAt(o.file, o.tok);
   }
@@ -591,7 +591,7 @@ export class Remover {
       if (n.t === "opaque" && n.a === bl.open) return true;
       if (n.t === "call") {
         if (n.lambda.includes(bl.open)) return true;
-        const arg = n.args.find((a) => a.a <= bl.open && bl.open < a.b);
+        const arg: Arg | undefined = n.args.find((a) => a.a <= bl.open && bl.open < a.b);
         if (arg) {
           n = arg.expr;
           continue;
@@ -765,8 +765,9 @@ export class Remover {
         return true;
       }
     }
-    if (!sh && !rp && "stmt" in ctx && ctx.part === "init" && ctx.stmt.kind === "val" && (ctx.stmt.block.kind === "body" || ctx.stmt.block.kind === "lambda")) {
-      const d = f.decls.find((x) => x.stmt === ctx.stmt && (x.kind === "val" || x.kind === "var"));
+    const kctx = sh ? null : (ctx as ExprCtx);
+    if (kctx && !rp && kctx.part === "init" && kctx.stmt.kind === "val" && (kctx.stmt.block.kind === "body" || kctx.stmt.block.kind === "lambda")) {
+      const d = f.decls.find((x) => x.stmt === kctx.stmt && (x.kind === "val" || x.kind === "var"));
       if (d && d.kind === "val") {
         this.deleteDecl(d);
         return true;
