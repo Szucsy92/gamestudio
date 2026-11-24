@@ -11,11 +11,21 @@ export interface Change {
   to: number;
 }
 
+/** Deletions on top of the number edits (removals.ts): the texts they give and which numbers went with them. */
+export interface Removal {
+  render: (edits: ReadonlyMap<string, number>) => Map<string, string>;
+  litDead: (id: string) => boolean;
+}
+
 export interface FileDiff {
   path: string;
   before: string;
   after: string;
   changes: Change[];
+  /** Lines deleted from this file (code taken out, not number edits). */
+  removed: number;
+  /** Something else than numbers changed (a deletion). */
+  structural: boolean;
   /** The unified diff of this file alone ("" when nothing changed). */
   patch: string;
   /** The restore diff: tuned → base, for undoing the patch on a repo it was applied to. */
@@ -33,7 +43,8 @@ export function changeList(model: Model, edits: ReadonlyMap<string, number>): Ch
   return out.sort((a, b) => a.lit.file.localeCompare(b.lit.file) || a.lit.start - b.lit.start);
 }
 
-export function fileDiffs(model: Model, edits: ReadonlyMap<string, number>): FileDiff[] {
+export function fileDiffs(model: Model, edits: ReadonlyMap<string, number>, removal?: Removal | null): FileDiff[] {
+  if (removal) return removalDiffs(model, edits, removal);
   const byFile = new Map<string, Change[]>();
   for (const c of changeList(model, edits)) {
     const a = byFile.get(c.lit.file);
@@ -51,7 +62,32 @@ export function fileDiffs(model: Model, edits: ReadonlyMap<string, number>): Fil
     );
     const patch = unifiedDiff(path, before, after);
     const revert = unifiedDiff(path, after, before);
-    out.push({ path, before, after, changes, patch, revert, lines: new Set(changes.map((c) => c.lit.line)).size });
+    out.push({ path, before, after, changes, patch, revert, lines: new Set(changes.map((c) => c.lit.line)).size, removed: 0, structural: false });
+  }
+  return out.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function removalDiffs(model: Model, edits: ReadonlyMap<string, number>, removal: Removal): FileDiff[] {
+  const texts = removal.render(edits);
+  const byFile = new Map<string, Change[]>();
+  for (const c of changeList(model, edits)) {
+    if (removal.litDead(c.lit.id)) continue;
+    const a = byFile.get(c.lit.file);
+    if (a) a.push(c);
+    else byFile.set(c.lit.file, [c]);
+  }
+  const out: FileDiff[] = [];
+  for (const [path, after] of texts) {
+    const before = model.kt.get(path) ?? model.files.get(path)?.src;
+    if (before === undefined || before === after) continue;
+    const changes = byFile.get(path) ?? [];
+    const patch = unifiedDiff(path, before, after);
+    const revert = unifiedDiff(path, after, before);
+    const minus = patch.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---")).length;
+    const plus = patch.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++")).length;
+    const numberLines = new Set(changes.map((c) => c.lit.line)).size;
+    const structural = minus !== numberLines || plus !== numberLines;
+    out.push({ path, before, after, changes, patch, revert, lines: Math.max(minus, plus), removed: Math.max(0, minus - plus), structural });
   }
   return out.sort((a, b) => a.path.localeCompare(b.path));
 }

@@ -5,7 +5,7 @@
 import JSZip from "jszip";
 import defaultRepoAsset from "@/assets/repo/default-repo.zip.asset.json";
 import { formatLiteral, type Literal } from "./scan";
-import { buildPatch, changeList, countDirs, fileDiffs, folderTree, treeText } from "./diff";
+import { buildPatch, changeList, countDirs, fileDiffs, folderTree, treeText, type Removal } from "./diff";
 import type { Model } from "./catalog";
 import { buildTree, MAX_VERTICES } from "@/tree/mesh";
 import { toObj } from "@/tree/obj";
@@ -141,6 +141,10 @@ export interface ExportInput {
   speciesCount: number;
   activeSpecies: number;
   soilBottom: boolean;
+  /** Deleted elements, parts, animations and values (applied on top of the edits). */
+  removal?: Removal | null;
+  /** Names of what was deleted, for CHANGES.md. */
+  removedLabels?: string[];
 }
 
 function stamp() {
@@ -168,18 +172,20 @@ export function tuningJson(species: SpeciesParams, count: number, active: number
 }
 
 /** The header of a GameStudio patch: what it is based on and how to apply it. */
-export function patchHeader(repo: RepoData, values: number, files: number, revert = false): string[] {
+export function patchHeader(repo: RepoData, values: number, files: number, revert = false, removed: string[] = []): string[] {
+  const del = removed.length ? [`Törölve (minden hivatkozásával): ${removed.join(", ")}`] : [];
   if (revert)
     return [
       `GameStudio VISSZAÁLLÍTÓ patch – ${stamp()}`,
-      `Az alap (${repo.name}) eredeti értékeit állítja vissza egy olyan repón, amelyre a GameStudio patch-et már alkalmazták.`,
-      `${values} érték visszaállítása, ${files} fájlban.`,
+      `Az alap (${repo.name}) eredeti állapotát állítja vissza egy olyan repón, amelyre a GameStudio patch-et már alkalmazták.`,
+      `${values} érték${removed.length ? ` és ${removed.length} törlés` : ""} visszaállítása, ${files} fájlban.`,
       `Alkalmazás a repó gyökérmappájában: git apply <fájl>.patch   vagy   patch -p1 < <fájl>.patch`,
     ];
   return [
     `GameStudio patch – ${stamp()}`,
     `Alap: ${repo.name}`,
-    `${values} módosított érték, ${files} fájlban.`,
+    `${values} módosított érték${removed.length ? `, ${removed.length} törlés` : ""}, ${files} fájlban.`,
+    ...del,
     `Alkalmazás a repó gyökérmappájában: git apply <fájl>.patch   vagy   patch -p1 < <fájl>.patch`,
     `Visszavonás: a mellékelt revert.patch alkalmazása (vagy git apply -R <fájl>.patch)`,
   ];
@@ -187,7 +193,8 @@ export function patchHeader(repo: RepoData, values: number, files: number, rever
 
 export async function buildRepoZip(input: ExportInput): Promise<Blob> {
   const { repo, model, edits } = input;
-  const diffs = fileDiffs(model, edits);
+  const diffs = fileDiffs(model, edits, input.removal);
+  const removed = input.removedLabels ?? [];
   const changes = diffs.flatMap((d) => d.changes);
   const after = new Map(diffs.map((d) => [d.path, d.after]));
   const zip = new JSZip();
@@ -208,9 +215,9 @@ export async function buildRepoZip(input: ExportInput): Promise<Blob> {
   }
   studio.file("TreeTuning.json", tuningJson(input.species, input.speciesCount, input.activeSpecies));
   if (diffs.length) {
-    studio.file("changes.patch", buildPatch(diffs, patchHeader(repo, changes.length, diffs.length)));
+    studio.file("changes.patch", buildPatch(diffs, patchHeader(repo, changes.length, diffs.length, false, removed)));
     for (const d of diffs) studio.file(`patches/${d.path}.patch`, d.patch);
-    studio.file("revert.patch", buildPatch(diffs, patchHeader(repo, changes.length, diffs.length, true), true));
+    studio.file("revert.patch", buildPatch(diffs, patchHeader(repo, changes.length, diffs.length, true, removed), true));
     for (const d of diffs) studio.file(`patches-revert/${d.path}.patch`, d.revert);
   }
   const tree = folderTree(diffs);
@@ -218,8 +225,9 @@ export async function buildRepoZip(input: ExportInput): Promise<Blob> {
     "CHANGES.md",
     `# GameStudio export (${stamp()})
 
-Alap: **${repo.name}**. A \`${rootName}/\` mappa a teljes repo; csak az alábbi számok változtak, minden más bájtra azonos.
-${changes.length} módosított érték, ${diffs.length} fájlban, ${countDirs(tree)} mappában.
+Alap: **${repo.name}**. A \`${rootName}/\` mappa a teljes repo; csak az alábbi ${removed.length ? "számok és törlések" : "számok"} változtak, minden más bájtra azonos.
+${changes.length} módosított érték${removed.length ? `, ${removed.length} törlés` : ""}, ${diffs.length} fájlban, ${countDirs(tree)} mappában.
+${removed.length ? `\n## Törölve (minden hivatkozásával együtt)\n\n${removed.map((r) => `- ${r}`).join("\n")}\n` : ""}
 ${warnings.length ? `\n> **Figyelem:**\n${warnings.map((w) => `> - ${w}`).join("\n")}\n` : ""}
 Ha ezt a ZIP-et visszatöltöd a GameStudióba, ezek az értékek lesznek az új alapértékek.
 ${

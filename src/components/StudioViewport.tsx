@@ -19,7 +19,11 @@ interface Props {
   viewNonce: number;
   /** Pixels covered by the bottom workbench: the picture is shifted up so the subject stays in the free area. */
   bottomInset: number;
+  /** Preview pieces that were deleted (structure.ts keys: "gate", "gate.veil" …). */
+  hidden?: ReadonlySet<string> | undefined;
 }
+
+type Hidden = ReadonlySet<string> | undefined;
 
 function seeded(seed: number) {
   return () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -157,8 +161,9 @@ function Glow({ position, size, color, opacity, tex }: { position: [number, numb
 }
 
 /** Stone gate, monolith, light ring and lantern side by side, as GameRenderer.drawLandmarks draws them. */
-function Landmarks({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number, number, number] }) {
+function Landmarks({ look, offset = [0, 0, 0], hidden }: { look: Look; offset?: [number, number, number]; hidden?: Hidden }) {
   const c = look.colors;
+  const hd = (k: string) => !!hidden?.has(k);
   const veil = useRef<THREE.MeshBasicMaterial>(null);
   const ring = useRef<THREE.Group>(null);
   const glowTex = useMemo(() => radialTexture("glow"), []);
@@ -172,50 +177,71 @@ function Landmarks({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number,
   return (
     <group position={offset}>
       {/* Stone gate */}
+      {!hd("gate") && (
       <group>
-        {[-1, 1].map((side) => (
+        {!hd("gate.posts") && [-1, 1].map((side) => (
           <mesh key={side} position={[side * (half + look["gate.postOut"]!), look["gate.postY"]!, 0]} castShadow>
             <boxGeometry args={[look["gate.postW"]!, look["gate.postH"]!, look["gate.postD"]!]} />
             <meshStandardMaterial color={c.rock} emissive={c.ember} emissiveIntensity={look["gate.emis"]! * 0.15} roughness={look["gate.rough"]!} metalness={look["gate.metal"]!} />
           </mesh>
         ))}
+        {!hd("gate.lintel") && (
         <mesh position={[0, look["gate.lintelY"]!, 0]} castShadow>
           <boxGeometry args={[half * 2 + look["gate.lintelOver"]!, look["gate.lintelH"]!, look["gate.lintelD"]!]} />
           <meshStandardMaterial color={c.rock} emissive={c.ember} emissiveIntensity={look["gate.emis"]! * 0.15} roughness={look["gate.rough"]!} metalness={look["gate.metal"]!} />
         </mesh>
+        )}
+        {!hd("gate.veil") && (
         <mesh position={[0, look["gate.veilY"]!, 0]}>
           <planeGeometry args={[half * 2, look["gate.veilH"]!]} />
           <meshBasicMaterial ref={veil} color={c.pursuer} {...additive} opacity={look["gate.veilA"]!} />
         </mesh>
-        <Glow tex={glowTex} position={[0, look["gate.glowY"]!, 0]} size={[look["gate.glowSize"]! * 0.5, look["gate.glowSize"]! * 0.5]} color={c.ember} opacity={look["gate.glowA"]!} />
+        )}
+        {!hd("gate.glow") && <Glow tex={glowTex} position={[0, look["gate.glowY"]!, 0]} size={[look["gate.glowSize"]! * 0.5, look["gate.glowSize"]! * 0.5]} color={c.ember} opacity={look["gate.glowA"]!} />}
       </group>
+      )}
       {/* Monolith */}
+      {!hd("mono") && (
       <group position={[-7, 0, 0]}>
+        {!hd("mono.block") && (
         <mesh position={[0, look["mono.y"]!, 0]} rotation-y={look["mono.rot"]!} castShadow>
           <boxGeometry args={[look["mono.w"]!, look["mono.h"]!, look["mono.d"]!]} />
           <meshStandardMaterial color={c.rock} emissive={c.secret} emissiveIntensity={look["mono.emis"]!} roughness={0.35} metalness={0.2} />
         </mesh>
+        )}
+        {!hd("mono.strip") && (
         <mesh position={[0.07, look["mono.stripY"]!, 0.2]} rotation-y={look["mono.rot"]!}>
           <boxGeometry args={[look["mono.stripW"]!, look["mono.stripH"]!, 0.02]} />
           <meshBasicMaterial color={c.secret} toneMapped={false} />
         </mesh>
-        <Glow tex={glowTex} position={[0, 2.4, 0]} size={[look["mono.glowSize"]!, look["mono.glowH"]!]} color={c.secret} opacity={Math.min(1, look["mono.glowA"]!)} />
+        )}
+        {!hd("mono.glow") && <Glow tex={glowTex} position={[0, 2.4, 0]} size={[look["mono.glowSize"]!, look["mono.glowH"]!]} color={c.secret} opacity={Math.min(1, look["mono.glowA"]!)} />}
       </group>
+      )}
       {/* Lantern */}
+      {!hd("lant") && (
       <group position={[5.8, 0, 1]}>
+        {!hd("lant.post") && (
         <mesh position={[0, look["lant.y"]!, 0]} rotation-z={look["lant.tilt"]!} castShadow>
           <cylinderGeometry args={[look["lant.w"]! / 2, look["lant.w"]! / 2, look["lant.h"]!, 12]} />
           <meshStandardMaterial color={c.trunk} roughness={0.9} />
         </mesh>
+        )}
+        {!hd("lant.lamp") && (
+        <>
         <mesh position={[0.06, look["lamp.y"]!, 0]}>
           <boxGeometry args={[look["lamp.w"]!, look["lamp.h"]!, look["lamp.w"]!]} />
           <meshBasicMaterial color={c.lamp} toneMapped={false} />
         </mesh>
-        <pointLight position={[0.06, look["lamp.y"]!, 0]} color={c.lamp} intensity={6} distance={8} />
+        {!hd("lant.glow") && <pointLight position={[0.06, look["lamp.y"]!, 0]} color={c.lamp} intensity={6} distance={8} />}
+        </>
+        )}
       </group>
+      )}
       {/* Light ring */}
+      {!hd("ring") && (
       <group position={[11.5, 0, -1]} ref={ring}>
-        {Array.from({ length: count }, (_, m) => {
+        {!hd("ring.orbs") && Array.from({ length: count }, (_, m) => {
           const a = (m / count) * Math.PI * 2;
           return (
             <mesh key={m} position={[Math.cos(a) * look["ring.r"]!, look["ring.y"]!, Math.sin(a) * look["ring.r"]!]} scale={[look["ring.w"]!, look["ring.h"]!, look["ring.w"]!]}>
@@ -225,12 +251,14 @@ function Landmarks({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number,
           );
         })}
       </group>
+      )}
     </group>
   );
 }
 
-function BlackHole({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number, number, number] }) {
+function BlackHole({ look, offset = [0, 0, 0], hidden }: { look: Look; offset?: [number, number, number]; hidden?: Hidden }) {
   const c = look.colors;
+  const hd = (k: string) => !!hidden?.has(k);
   const body = useRef<THREE.Group>(null);
   const veil = useRef<THREE.Group>(null);
   const rings = useRef<(THREE.Mesh | null)[]>([]);
@@ -252,11 +280,15 @@ function BlackHole({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number,
   ];
   return (
     <group position={offset}>
+      {!hd("hole") && (
       <group ref={body} position={[0, look["hole.h"]!, 0]}>
+        {!hd("hole.body") && (
         <mesh>
           <sphereGeometry args={[look["hole.r"]!, 48, 32]} />
           <meshBasicMaterial color="#000000" fog={false} />
         </mesh>
+        )}
+        {!hd("hole.veil") && (
         <group ref={veil}>
           {list.map(([size, color, a], r) => (
             <mesh key={r} ref={(m) => void (rings.current[r] = m)}>
@@ -265,14 +297,17 @@ function BlackHole({ look, offset = [0, 0, 0] }: { look: Look; offset?: [number,
             </mesh>
           ))}
         </group>
-        <Glow tex={glowTex} position={[0, 0, 0]} size={[look["hole.r3"]! * 1.2, look["hole.r3"]! * 1.2]} color={c.purple} opacity={0.25} />
+        )}
+        {!hd("hole.halo") && <Glow tex={glowTex} position={[0, 0, 0]} size={[look["hole.r3"]! * 1.2, look["hole.r3"]! * 1.2]} color={c.purple} opacity={0.25} />}
       </group>
+      )}
     </group>
   );
 }
 
-function Orb({ look, color, i, position }: { look: Look; color: string; i: number; position: [number, number, number] }) {
+function Orb({ look, color, i, position, hidden }: { look: Look; color: string; i: number; position: [number, number, number]; hidden?: Hidden }) {
   const c = look.colors;
+  const hd = (k: string) => !!hidden?.has(k);
   const g = useRef<THREE.Group>(null);
   const shell = useRef<THREE.Mesh>(null);
   const inner = useRef<THREE.Group>(null);
@@ -308,30 +343,33 @@ function Orb({ look, color, i, position }: { look: Look; color: string; i: numbe
   ];
   return (
     <group ref={g} position={position}>
+      {!hd("orb.shell") && (
       <mesh ref={shell}>
         <sphereGeometry args={[1, 48, 32]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} transparent opacity={look["orb.alpha"]!} roughness={0.2} depthWrite={false} />
       </mesh>
+      )}
       <group ref={inner}>
-        {bands.map(([R, r, col, a], k) => (
+        {bands.map(([R, r, col, a], k) => hd(`orb.band${k + 1}`) ? null : (
           <mesh key={k} ref={(m) => void (tor.current[k] = m)}>
             <torusGeometry args={[R, Math.max(0.005, r), 12, 64]} />
             <meshBasicMaterial color={col} opacity={a} {...additive} toneMapped={false} />
           </mesh>
         ))}
       </group>
-      <pointLight color={color} intensity={3} distance={5} />
+      {!hd("orb.aura") && <pointLight color={color} intensity={3} distance={5} />}
     </group>
   );
 }
 
-function Orbs({ look, offset = [0, 0, 0], spread = 2.4 }: { look: Look; offset?: [number, number, number]; spread?: number }) {
+function Orbs({ look, offset = [0, 0, 0], spread = 2.4, hidden }: { look: Look; offset?: [number, number, number]; spread?: number; hidden?: Hidden }) {
   const c = look.colors;
+  if (hidden?.has("orb")) return null;
   return (
     <group position={offset}>
-      <Orb look={look} color={c.freezer} i={0} position={[-spread, 0, 0]} />
-      <Orb look={look} color={c.ghost} i={1} position={[0, 0, 0]} />
-      <Orb look={look} color={c.shock} i={2} position={[spread, 0, 0]} />
+      {!hidden?.has("orb.freezer") && <Orb look={look} color={c.freezer} i={0} position={[-spread, 0, 0]} hidden={hidden} />}
+      {!hidden?.has("orb.ghost") && <Orb look={look} color={c.ghost} i={1} position={[0, 0, 0]} hidden={hidden} />}
+      {!hidden?.has("orb.shock") && <Orb look={look} color={c.shock} i={2} position={[spread, 0, 0]} hidden={hidden} />}
     </group>
   );
 }
@@ -380,7 +418,7 @@ function CameraRig({ scene, view, nonce, topY }: { scene: SceneId; view: CameraV
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={160} target={[0, 10, 0]} />;
 }
 
-export function StudioViewport({ scene, mesh, look, wireframe, showGround, view, viewNonce, bottomInset }: Props) {
+export function StudioViewport({ scene, mesh, look, wireframe, showGround, view, viewNonce, bottomInset, hidden }: Props) {
   const [ready, setReady] = useState(false);
   const c = look.colors;
   const isTree = scene === "tree";
@@ -431,15 +469,15 @@ export function StudioViewport({ scene, mesh, look, wireframe, showGround, view,
         </Environment>
 
         {isTree && <TreeBody mesh={mesh} wireframe={wireframe} tint="#e0bea0" />}
-        {scene === "gates" && <Landmarks look={look} />}
-        {scene === "hole" && <BlackHole look={look} />}
-        {scene === "orbs" && <Orbs look={look} />}
+        {scene === "gates" && <Landmarks look={look} hidden={hidden} />}
+        {scene === "hole" && <BlackHole look={look} hidden={hidden} />}
+        {scene === "orbs" && <Orbs look={look} hidden={hidden} />}
         {scene === "world" && (
           <>
             <TreeBody mesh={mesh} wireframe={wireframe} tint={c.trunk} position={[-9, 0, -4]} />
-            <Landmarks look={look} offset={[3, 0, 2]} />
-            <Orbs look={look} offset={[2, 0, 9]} spread={1.6} />
-            <BlackHole look={look} offset={[-4, 6, -40]} />
+            <Landmarks look={look} offset={[3, 0, 2]} hidden={hidden} />
+            <Orbs look={look} offset={[2, 0, 9]} spread={1.6} hidden={hidden} />
+            <BlackHole look={look} offset={[-4, 6, -40]} hidden={hidden} />
           </>
         )}
 

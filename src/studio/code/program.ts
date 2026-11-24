@@ -258,6 +258,18 @@ export class Program {
       if (inIdx < 0) return undefined;
       const isIndex = toks[open + 1]?.v === "(" && toks[open + 2]?.v === d.name;
       if (isIndex) return "Int";
+      // integer ranges: 0 until n, a..b, n downTo 0, xs.indices
+      for (let q = inIdx + 1; q < close; q++) {
+        const v = toks[q]!.v;
+        if (toks[q]!.k === "open") {
+          q = toks[q]!.m;
+          continue;
+        }
+        if (v === "until" || v === ".." || v === "..<" || v === "downTo" || (v === "indices" && toks[q - 1]?.v === ".")) {
+          const first = toks[inIdx + 1];
+          return first && first.k === "num" && /[lL]$/.test(first.v) ? "Long" : "Int";
+        }
+      }
       let e = close;
       // strip .withIndex()
       if (toks[e - 1]?.v === ")" && toks[e - 2]?.v === "(" && toks[e - 3]?.v === "withIndex") e -= 4;

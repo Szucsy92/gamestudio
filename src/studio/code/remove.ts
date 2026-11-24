@@ -749,12 +749,33 @@ export class Remover {
     if (parent && parent.t === "chain" && parent.level === LEVEL.add) {
       const live = parent.items.filter((x) => !excl.has(x));
       if (live.length >= 2 && this.chainDropOk(f, path, k - 1, unit, "absent", sh)) {
+        // `a * (1 + motion)` → `a`: a factor that would be left as a bare 1 goes with it
+        const rest = live.filter((x) => x !== unit);
+        const pp = path[k - 2], mul = path[k - 3];
+        const one = rest.length === 1 && rest[0]!.t === "lit" && /^1(\.0*)?[fFdD]?$/.test(toks[rest[0]!.a]!.v) && rest[0]!.b === rest[0]!.a + 1;
+        if (one && pp?.t === "paren" && mul?.t === "chain" && mul.level === LEVEL.mul && this.chainDropOk(f, path, k - 3, pp, "edit", sh)) {
+          this.dropChainItem(f, mul, pp, sh, path[k - 4]?.t === "paren" ? path[k - 4] : undefined);
+          return true;
+        }
         this.dropChainItem(f, parent, unit, sh, path[k - 2]?.t === "paren" ? path[k - 2] : undefined);
         return true;
       }
       return replace(unit);
     }
     // the term is the whole value of its region
+    // `x += motion;` (also -=): the whole statement goes
+    if (k === 0 || path.slice(0, k).every((n) => n.t === "paren" || (n.t === "prefix" && n.op === "-"))) {
+      const opTok = path[0]!.a - 1;
+      const op = toks[opTok]?.v;
+      if (op === "+=" || op === "-=") {
+        if (sh) return this.deleteGlslStmt(sh, opTok, path[0]!.b);
+        const kc = ctx as ExprCtx;
+        if (kc.stmt) {
+          this.deleteStmt(kc.stmt);
+          return true;
+        }
+      }
+    }
     while (k > 0 && (path[k - 1]!.t === "paren" || (path[k - 1]!.t === "prefix" && ((path[k - 1] as Extract<Node, { t: "prefix" }>).op === "-")))) k--;
     const region = path[k]!;
     const rp = path[k - 1];
@@ -777,6 +798,113 @@ export class Remover {
     return replace(region);
   }
 
+  /**
+   * A required number is gone: the smallest piece of code that holds it goes (term, argument, statement), with
+   * everything that depends on it, like a deleted declaration.
+   */
+  absentSpan(f: FileSyntax, a: number, b: number) {
+    if (this.isDead(f, a)) return;
+    const ctx = this.P.exprAt(f, a);
+    if (!ctx) {
+      const st = this.innermost(f, a);
+      if (st) this.deleteStmt(st);
+      return;
+    }
+    const path = this.pathToSpan(ctx.root, a, b);
+    if (!path) return this.deleteStmt(ctx.stmt);
+    let k = path.length - 1;
+    while (k > 0 && path[k - 1]!.t === "prefix" && (path[k - 1] as Extract<Node, { t: "prefix" }>).op === "-") k--;
+    this.absentNode(f, ctx, path, k);
+  }
+
+  /**
+   * GLSL: the statements a required number takes with it: its own statement, and when that declares a local, every
+   * statement reading it (recursively). Null with a reason when that would leave the shader broken.
+   */
+  planAbsentGlsl(sh: Shader, tok: number): { plan: () => void } | { why: string } {
+    const toks = sh.toks;
+    const m = this.shMarks(sh);
+    const spans: [number, number][] = [];
+    const seen = new Set<number>();
+    const visit = (q: number): string | null => {
+      if (m[q]) return null;
+      // statement start: back to ; { } outside parentheses
+      let s0 = q, depth = 0;
+      while (s0 > 0) {
+        const t = toks[s0 - 1]!;
+        if (t.k === "close") depth++;
+        else if (t.k === "open" && t.v !== "{") {
+          if (depth === 0) {
+            const kw = toks[s0 - 2]?.v;
+            if (kw === "if" || kw === "for" || kw === "while") return "egy feltételben vagy ciklusfejben áll";
+            depth = 0;
+          } else depth--;
+        } else if (depth === 0 && (t.v === ";" || t.v === "{" || t.v === "}")) break;
+        s0--;
+      }
+      while (toks[s0] && toks[s0]!.k === "nl") s0++;
+      let e0 = q;
+      while (e0 < toks.length && toks[e0]!.v !== ";") {
+        const t = toks[e0]!;
+        if (t.k === "open" && t.v !== "{") e0 = t.m;
+        else if (t.v === "{" || t.v === "}") return "egy blokk fejében áll";
+        e0++;
+      }
+      if (e0 >= toks.length) return "nem található a sor vége";
+      if (seen.has(s0)) return null;
+      seen.add(s0);
+      if (toks[s0]!.v === "return") return "a shader egyik függvényének visszatérési értéke";
+      spans.push([s0, e0]);
+      // a declaration: its readers go too
+      let n = s0;
+      while (toks[n] && /^(const|highp|mediump|lowp|in|out|uniform|varying|attribute|flat|precise)$/.test(toks[n]!.v)) n++;
+      if (/^(float|int|uint|bool|[iub]?vec[234]|mat[234])$/.test(toks[n]?.v ?? "") && toks[n + 1]?.k === "id" && (toks[n + 2]?.v === "=" || toks[n + 2]?.v === ";")) {
+        if (/^(uniform|in|out|varying|attribute)$/.test(toks[s0]!.v)) return "egy shader-bemenet vagy -kimenet";
+        const name = toks[n + 1]!.v;
+        for (let r = 0; r < toks.length; r++) {
+          if (r === n + 1 || toks[r]!.k !== "id" || toks[r]!.v !== name || toks[r - 1]?.v === "." || m[r]) continue;
+          if (r >= s0 && r <= e0) continue;
+          const why = visit(r);
+          if (why) return why;
+        }
+      }
+      return null;
+    };
+    const why = visit(tok);
+    if (why) return { why };
+    return {
+      plan: () => {
+        for (const [s0, e0] of spans) this.deleteGlslStmt(sh, s0 + 1 > e0 ? s0 : s0, e0, s0);
+        this.glslChanged++;
+      },
+    };
+  }
+
+  /** Deletes the GLSL statement around `opTok` (up to the `;` at `end`), with its line when it stands alone. */
+  private deleteGlslStmt(sh: Shader, opTok: number, end: number, start?: number): boolean {
+    const toks = sh.toks;
+    if (toks[end]?.v !== ";") return false;
+    let a = start ?? -1;
+    if (a < 0) {
+      let q = opTok - 1;
+      while (q >= 0 && toks[q]!.v !== ";" && toks[q]!.v !== "{" && toks[q]!.v !== "}") q--;
+      a = q + 1;
+      while (toks[a] && toks[a]!.k === "nl") a++;
+    }
+    const m = this.shMarks(sh);
+    for (let i = a; i <= end; i++) m[i] = 1;
+    const src = sh.file.lx.src;
+    let s = toks[a]!.s, e = toks[end]!.e;
+    const ls = src.lastIndexOf("\n", s - 1) + 1;
+    const le = src.indexOf("\n", e);
+    if (/^[ \t]*$/.test(src.slice(ls, s)) && le >= 0 && /^[ \t]*$/.test(src.slice(e, le))) {
+      s = ls;
+      e = le + 1;
+    }
+    this.cuts.push({ file: sh.file, s, e });
+    return true;
+  }
+
   /** The neutral value of a number that was taken out: 1 in a product, 0 in a sum (and for anything else). */
   neutralAt(path: string, pos: number): number {
     for (const ld of this.lists.values()) {
@@ -795,13 +923,15 @@ export class Remover {
   // ---- cleanup to a fixpoint
   finish() {
     for (let round = 0; round < 40; round++) {
-      const before = this.stmts.size + this.decls.size + this.lists.size + this.repl.length;
+      const before = this.stmts.size + this.decls.size + this.lists.size + this.repl.length + this.glslChanged;
       this.cleanBlocks();
       this.cleanSetup();
       this.cleanOrphans();
       this.cleanEnums();
       this.cleanImports();
-      if (this.stmts.size + this.decls.size + this.lists.size + this.repl.length === before) break;
+      this.cleanGlslOrphans();
+      this.cleanGlslBlocks();
+      if (this.stmts.size + this.decls.size + this.lists.size + this.repl.length + this.glslChanged === before) break;
     }
   }
 
@@ -1044,6 +1174,77 @@ export class Remover {
         if (already) this.repl = this.repl.filter((x) => !(x.file === f && (x.s === tM.s || x.s === tN.s)));
         this.repl.push({ file: f, s: tM.s, e: tM.e, text: String(live.length - 1) });
         this.repl.push({ file: f, s: tN.s, e: tN.e, text: String(live.length) });
+      }
+    }
+  }
+
+  /** GLSL locals that lost their last reader: `float gust = …;` goes too (repeated until nothing changes). */
+  private cleanGlslOrphans() {
+    for (const [sh, m] of this.deadSh) {
+      const toks = sh.toks;
+      for (const [name, list] of sh.vars) {
+        for (const v of list) {
+          if (m[v.at] || toks[v.at + 1]?.v !== "=" || !/^(float|int|vec[234]|ivec[234]|mat[234]|bool)$/.test(toks[v.at - 1]?.v ?? "")) continue;
+          let semi = -1;
+          for (let q = v.at + 2; q < toks.length; q++) {
+            const t = toks[q]!;
+            if (t.k === "open") {
+              q = t.m;
+              continue;
+            }
+            if (t.v === ";") {
+              semi = q;
+              break;
+            }
+            if (t.v === "," || t.v === "{" || t.v === "}") break;
+          }
+          if (semi < 0) continue;
+          let all = 0, live = 0;
+          for (let q = 0; q < toks.length; q++) {
+            if (q === v.at || toks[q]!.k !== "id" || toks[q]!.v !== name || toks[q - 1]?.v === ".") continue;
+            all++;
+            if (!m[q]) live++;
+          }
+          if (all > 0 && live === 0) {
+            // the initializer may hold function calls with side effects only through out-params, which GLSL locals do not
+            this.deleteGlslStmt(sh, v.at + 1, semi);
+            this.glslChanged++;
+          }
+        }
+      }
+    }
+  }
+  private glslChanged = 0;
+
+  /** `if (…) { }` / `for (…) { }` whose whole body went, without an else: the statement goes. */
+  private cleanGlslBlocks() {
+    for (const [sh, m] of this.deadSh) {
+      const toks = sh.toks;
+      for (let q = 0; q < toks.length; q++) {
+        const kw = toks[q]!.v;
+        if ((kw !== "if" && kw !== "for") || m[q] || toks[q + 1]?.v !== "(") continue;
+        const close = toks[q + 1]!.m;
+        const open = close + 1;
+        if (toks[open]?.v !== "{") continue;
+        const end = toks[open]!.m;
+        if (end <= open + 1) continue;
+        let all = true;
+        for (let i = open + 1; i < end; i++) if (!m[i] && toks[i]!.k !== "nl") {
+          all = false;
+          break;
+        }
+        if (!all || toks[end + 1]?.v === "else" || toks[q - 1]?.v === "else") continue;
+        for (let i = q; i <= end; i++) m[i] = 1;
+        const src = sh.file.lx.src;
+        let s0 = toks[q]!.s, e0 = toks[end]!.e;
+        const ls = src.lastIndexOf("\n", s0 - 1) + 1;
+        const le = src.indexOf("\n", e0);
+        if (/^[ \t]*$/.test(src.slice(ls, s0)) && le >= 0 && /^[ \t]*$/.test(src.slice(e0, le))) {
+          s0 = ls;
+          e0 = le + 1;
+        }
+        this.cuts.push({ file: sh.file, s: s0, e: e0 });
+        this.glslChanged++;
       }
     }
   }

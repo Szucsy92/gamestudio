@@ -185,6 +185,19 @@ function pathTo(root: Node, a: number, b: number): Node[] {
   return last && last.a <= a && last.b >= b ? out : [];
 }
 
+const isTrig = (n: Node) => n.t === "call" && n.fn.t === "id" && (n.fn.name === "sin" || n.fn.name === "cos");
+
+/** Is path[i] (through sums, products, parentheses and signs only) an argument of sin/cos? */
+function underTrig(path: Node[], i: number): boolean {
+  for (let j = i - 1; j >= 0; j--) {
+    const p = path[j]!;
+    if (isTrig(p)) return true;
+    if ((p.t === "chain" && (p.level === 9 || p.level === 10)) || p.t === "paren" || p.t === "prefix") continue;
+    return false;
+  }
+  return false;
+}
+
 function animUnit(path: Node[], isTime: (n: Node) => boolean, timeNode: Node): Node | null {
   let k = path.length - 1;
   let cur = path[k]!;
@@ -220,6 +233,11 @@ function animUnit(path: Node[], isTime: (n: Node) => boolean, timeNode: Node): N
       continue;
     }
     if (n.t === "chain" && n.level === 9) {
+      // a phase inside sin/cos (`sin(t * 1.3 + i)`): the motion is the whole wave, further up
+      if (!periodic && underTrig(path, i)) {
+        cur = n;
+        continue;
+      }
       if (periodic || linear(cur)) return cur;
       return null;
     }
@@ -316,12 +334,20 @@ function elementOfPath(path: string): ElementId {
 
 function animLabel(labels: string[], text: string, fn: string): string {
   if (labels.length) {
-    const words = labels.map((l) => l.split(/\s+/)[0]!.replace(/[:,]$/, ""));
-    if (words.every((w) => w === words[0])) return words[0]!;
-    return labels[0]!.replace(/\s+(sebessége|mértéke|mérete|fénye|forgása)$/, "");
+    if (labels.length === 1) return labels[0]!;
+    // common leading words ("Lebegés magassága", "Lebegés sebessége" → "Lebegés")
+    const split = labels.map((l) => l.split(/\s+/));
+    const common: string[] = [];
+    for (let k = 0; k < split[0]!.length; k++) {
+      const w = split[0]![k]!;
+      if (split.every((x) => x[k] === w)) common.push(w);
+      else break;
+    }
+    const c = common.join(" ").replace(/[:,]$/, "");
+    return c.length >= 4 && !/\d\.?$/.test(c) ? c : labels.join(" + ");
   }
   const short = text.replace(/\s+/g, " ");
-  return `${fn}: ${short.length > 46 ? short.slice(0, 45) + "…" : short}`;
+  return `${fn}() · ${short.length > 46 ? short.slice(0, 45) + "…" : short}`;
 }
 
 export function catalogFor(model: Model): Catalog {
@@ -481,8 +507,13 @@ export function planValue(cat: Catalog, model: Model, R: Remover, ids: string[])
       const numTok = shTokAt(sh, lit.end - 1);
       if (a < 0 || numTok < 0) return "Nem található a shaderben.";
       const plan = R.planEditGlsl(sh, a, numTok + 1);
-      if (!plan) return "Ez a szám a shader kifejezésének nem elhagyható része (pl. egyetlen érték vagy függvényparaméter).";
-      plans.push(plan);
+      if (plan) {
+        plans.push(plan);
+        continue;
+      }
+      const ab = R.planAbsentGlsl(sh, a);
+      if ("why" in ab) return `Ez a szám nem vehető ki: ${ab.why}.`;
+      plans.push(ab.plan);
       continue;
     }
     const a = tokAt(f, lit.start);
@@ -496,21 +527,27 @@ export function planValue(cat: Catalog, model: Model, R: Remover, ids: string[])
       if (!d) return "A deklaráció nem található.";
       const refs = P.refs(d.name).filter((r) => !R.isDead(r.file, r.tok) && P.resolve(r).includes(d));
       const sub: (() => void)[] = [];
+      let soft = true;
       for (const r of refs) {
-        if (r.str !== undefined) return `${d.name} szövegben is szerepel – nem vehető ki.`;
-        const p = R.planEditRef(r.file, r.tok);
-        if (!p) return `${d.name} itt nem hagyható el: ${r.file.path.split("/").pop()}:${lineOf(r.file.lx.src, r.file.toks[r.tok]!.s)} (kötelező érték egy kifejezésben).`;
+        const p = r.str === undefined ? R.planEditRef(r.file, r.tok) : null;
+        if (!p) {
+          soft = false;
+          break;
+        }
         sub.push(p);
       }
-      plans.push(() => {
-        R.deleteStmtOnly(st);
-        for (const p of sub) p();
-      });
+      if (soft)
+        plans.push(() => {
+          R.deleteStmtOnly(st);
+          for (const p of sub) p();
+        });
+      // required somewhere: the declaration goes with everything that uses it
+      else plans.push(() => R.deleteDecl(d));
       continue;
     }
     const plan = R.planEdit(f, a, numTok + 1);
-    if (!plan) return "Ez a szám a kifejezés nem elhagyható része (egyetlen érték, kötelező paraméter vagy a típus megváltozna). A részt vagy elemet, amihez tartozik, törölheted.";
-    plans.push(plan);
+    // required where it stands: what holds it goes (term, argument, statement …) with everything that depends on it
+    plans.push(plan ?? (() => R.absentSpan(f, a, numTok + 1)));
   }
   return () => plans.forEach((p) => p());
 }
