@@ -3,6 +3,8 @@ import { Box, ChevronDown, Download, Eye, FolderUp, GitCompareArrows, Grid3x3, I
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { KtName, ParamGroup } from "@/components/ParamPanel";
 import { ChangesPanel } from "@/components/ChangesPanel";
+import { ItemAction, RemovalContext, type RemovalApi } from "@/components/removal-context";
+import { RemovalTree } from "@/components/RemovalTree";
 import { StudioViewport, type CameraView } from "@/components/StudioViewport";
 import { Fold, GroupList, RowView, type SetValues } from "@/components/ValuePanel";
 import referenceAsset from "@/assets/reference-forest.png.asset.json";
@@ -12,6 +14,8 @@ import { buildModel, countChanged, ELEMENTS, labelIndex, treeChangedCount, treeE
 import { applyPatch, buildPatch, editsFromPatched, fileDiffs, folderTree, restorePatch, treeText, type FileDiff } from "@/studio/diff";
 import type { ElementId } from "@/studio/curated";
 import { lookFrom } from "@/studio/look";
+import { previewEdits, tryRemove, validRemovals } from "@/studio/removal-state";
+import { catalogFor, computeRemoval, itemLabel } from "@/studio/removals";
 import { buildRepoZip, clearStoredRepo, downloadBlob, openStartRepo, parseRepoZip, patchHeader, readRepoText, repoKey, repoWithFiles, saveStoredRepo, tuningJson, type RepoData } from "@/studio/repo";
 
 export const Route = createFileRoute("/")({
@@ -38,6 +42,8 @@ interface Saved {
   active: number;
   shape: number;
   prop: boolean;
+  /** Deleted items (removals.ts ids), applied on top of the base repo. */
+  removed?: string[];
 }
 
 type Panel = ElementId | "all" | "view" | "changes";
@@ -141,6 +147,7 @@ function GameStudio() {
   const [refLarge, setRefLarge] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const restoredFor = useRef<string | null>(null);
   const bench = useRef<HTMLDivElement>(null);
@@ -180,7 +187,9 @@ function GameStudio() {
       setActive(Math.min(model.tree.count - 1, Math.max(0, saved.active)));
       setShape(saved.shape);
       setProp(saved.prop);
+      setRemoved(Array.isArray(saved.removed) && saved.removed.length ? validRemovals(model, catalogFor(model), saved.removed) : []);
     } else {
+      setRemoved([]);
       setEdits({});
       setSpecies(base.map((p) => ({ ...p })) as SpeciesParams);
       setActive(Math.min(2, model.tree.count - 1));
@@ -189,9 +198,9 @@ function GameStudio() {
 
   useEffect(() => {
     if (!key || !species || restoredFor.current !== key) return;
-    const t = setTimeout(() => localStorage.setItem(STORAGE_KEY, JSON.stringify({ base: key, edits, species, active, shape, prop } satisfies Saved)), 250);
+    const t = setTimeout(() => localStorage.setItem(STORAGE_KEY, JSON.stringify({ base: key, edits, species, active, shape, prop, removed } satisfies Saved)), 250);
     return () => clearTimeout(t);
-  }, [key, edits, species, active, shape, prop]);
+  }, [key, edits, species, active, shape, prop, removed]);
 
   useEffect(() => {
     if (!notice) return;
@@ -199,13 +208,37 @@ function GameStudio() {
     return () => clearTimeout(t);
   }, [notice]);
 
+  const labels = useMemo(() => (model ? labelIndex(model) : new Map<string, string>()), [model]);
+  // Deletions: the catalog (the parsed repo) is built only once something is opened or deleted.
+  const needCat = panel !== null || removed.length > 0;
+  const cat = useMemo(() => (model && needCat ? catalogFor(model) : null), [model, needCat]);
+  const removal = useMemo(() => (model && cat ? computeRemoval(model, removed) : null), [model, cat, removed]);
+  const onRemove = useCallback(
+    (ids: string[]) => {
+      if (!model) return;
+      const r = tryRemove(model, removed, ids);
+      const c = catalogFor(model);
+      if (r.failed.length) setNotice(`Nem törölhető: ${r.failed.map((f) => `${itemLabel(c, f.id, model, labels)} (${f.reason})`).join("; ")}`);
+      else if (r.added.length) setNotice(`${r.added.map((id) => itemLabel(c, id, model, labels)).join(", ")} törölve. A Változások lapon visszavonható.`);
+      if (r.added.length) setRemoved(r.next);
+    },
+    [model, removed, labels],
+  );
+  const onRestore = useCallback((ids: string[]) => {
+    const drop = new Set(ids);
+    setRemoved((prev) => prev.filter((id) => !drop.has(id)));
+    setNotice(ids.length > 1 ? `${ids.length} törlés visszavonva.` : "Törlés visszavonva.");
+  }, []);
+  const removalApi = useMemo<RemovalApi | null>(() => (cat && removal ? { cat, state: removal, removed, remove: onRemove, restore: onRestore } : null), [cat, removal, removed, onRemove, onRestore]);
+  const removedNames = useMemo(() => (model && cat ? removed.map((id) => itemLabel(cat, id, model, labels)) : []), [model, cat, removed, labels]);
+
   const tree = model?.tree;
   const count = tree?.count ?? 4;
   const baseSpecies = tree?.species;
   const params = species?.[active] ?? baseSpecies?.[active] ?? referencePreset(2);
   const deferredParams = useDeferredValue(params);
   const mesh = useMemo(() => buildTree(deferredParams, active, shape, { lifelike, soilBottom: tree?.soilBottom ?? false }), [deferredParams, active, shape, lifelike, tree?.soilBottom]);
-  const look = useMemo(() => (model ? lookFrom(model, edits) : null), [model, edits]);
+  const look = useMemo(() => (model ? lookFrom(model, previewEdits(model, edits, removal)) : null), [model, edits, removal]);
   const overLimit = mesh.vertexCount > MAX_VERTICES;
 
   const onSet: SetValues = useCallback((pairs) => {
@@ -254,7 +287,9 @@ function GameStudio() {
     const el = model.elements.find((e) => e.id === id)!;
     return el.groups.reduce((a, g) => a + countChanged(model, edits, g), 0) + (id === "trees" ? treeChanged : 0);
   };
-  const totalChanged = model ? Object.entries(edits).filter(([id, v]) => Math.abs((model.lits.get(id)?.value ?? v) - v) > 1e-12).length + treeChanged : 0;
+  const totalChanged = model ? Object.entries(edits).filter(([id, v]) => Math.abs((model.lits.get(id)?.value ?? v) - v) > 1e-12 && !removal?.litDead(id)).length + treeChanged : 0;
+  /** Changed values plus deleted items. */
+  const changeTotal = totalChanged + removed.length;
 
   /** Every literal edit, the tree editor's TREE_* values included. */
   const allEdits = useMemo(() => {
@@ -263,12 +298,11 @@ function GameStudio() {
     return all;
   }, [model, tree, species, edits]);
   const deferredEdits = useDeferredValue(allEdits);
-  const diffs = useMemo<FileDiff[]>(() => (model && panel === "changes" ? fileDiffs(model, deferredEdits) : []), [model, deferredEdits, panel]);
-  const labels = useMemo(() => (model ? labelIndex(model) : new Map<string, string>()), [model]);
+  const diffs = useMemo<FileDiff[]>(() => (model && panel === "changes" ? fileDiffs(model, deferredEdits, removal) : []), [model, deferredEdits, panel, removal]);
   const today = () => new Date().toISOString().slice(0, 10);
 
-  const patchText = (ds: FileDiff[], revert = false) => (repo ? buildPatch(ds, patchHeader(repo, ds.reduce((a, d) => a + d.changes.length, 0), ds.length, revert), revert) : "");
-  const currentDiffs = () => (model ? fileDiffs(model, allEdits) : []);
+  const patchText = (ds: FileDiff[], revert = false) => (repo ? buildPatch(ds, patchHeader(repo, ds.reduce((a, d) => a + d.changes.length, 0), ds.length, revert, removedNames), revert) : "");
+  const currentDiffs = () => (model ? fileDiffs(model, allEdits, removal) : []);
   const onDownloadPatch = (revert = false) => {
     const ds = currentDiffs();
     if (!ds.length || !repo) return setNotice("Nincs változás, nincs mit patch-be tenni.");
@@ -333,7 +367,7 @@ function GameStudio() {
     const { edits: found, structural } = editsFromPatched(model, patched);
     if (structural.length) {
       const ok = window.confirm(
-        `A patch nem csak számokat módosít (${structural.map((p) => p.split("/").pop()).join(", ")}).\n\nAlkalmazzam a repóra, és legyen ez az új alap? A mostani ${totalChanged} módosításod elvész. A visszaállító patch-et (új alap → mostani alap) letöltöm, hogy bármikor visszaléphess.`,
+        `A patch nem csak számokat módosít (${structural.map((p) => p.split("/").pop()).join(", ")}).\n\nAlkalmazzam a repóra, és legyen ez az új alap? A mostani ${changeTotal} módosításod elvész. A visszaállító patch-et (új alap → mostani alap) letöltöm, hogy bármikor visszaléphess.`,
       );
       if (!ok) return;
       setBusy(true);
@@ -388,7 +422,7 @@ function GameStudio() {
       }
       return;
     }
-    if (totalChanged > 0 && !window.confirm(`${totalChanged} módosításod van. Az új repo lesz az alap, és ezek elvesznek. Előtte töltsd le a ZIP-et, ha kellenek. Folytatod?`)) return;
+    if (changeTotal > 0 && !window.confirm(`${changeTotal} módosításod van. Az új repo lesz az alap, és ezek elvesznek. Előtte töltsd le a ZIP-et, ha kellenek. Folytatod?`)) return;
     setBusy(true);
     try {
       const data = await file.arrayBuffer();
@@ -418,9 +452,9 @@ function GameStudio() {
     if (!repo || !model || !species || !tree) return;
     setBusy(true);
     try {
-      const blob = await buildRepoZip({ repo, model, edits: allEdits, species, speciesCount: count, activeSpecies: active, soilBottom: tree.soilBottom });
+      const blob = await buildRepoZip({ repo, model, edits: allEdits, species, speciesCount: count, activeSpecies: active, soilBottom: tree.soilBottom, removal, removedLabels: removedNames });
       downloadBlob(blob, `${repo.root || "repo"}-gamestudio-${new Date().toISOString().slice(0, 10)}.zip`);
-      setNotice(`ZIP letöltve: teljes repo, ${totalChanged} módosított értékkel.`);
+      setNotice(`ZIP letöltve: teljes repo, ${totalChanged} módosított értékkel${removed.length ? ` és ${removed.length} törléssel` : ""}.`);
     } catch (e) {
       setNotice(`Nem sikerült a ZIP: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -526,7 +560,11 @@ function GameStudio() {
       <>
         {id === "trees" && treeBody()}
         {id === "code" && <p className="py-2 text-[11px] text-muted-foreground">A repó összes Kotlin fájljának minden száma, függvényenként. A fa törzs-szakaszát a „Fák” elem kezeli.</p>}
-        {el.groups.length > 0 && <GroupList model={model} groups={el.groups} edits={edits} onSet={onSet} openFirst={id !== "trees" && id !== "code"} />}
+        {removalApi?.cat.tree.has(id) ? (
+          <RemovalTree element={id} model={model} groups={el.groups} edits={edits} onSet={onSet} openFirst={id !== "trees" && id !== "code"} />
+        ) : (
+          el.groups.length > 0 && <GroupList model={model} groups={el.groups} edits={edits} onSet={onSet} openFirst={id !== "trees" && id !== "code"} />
+        )}
       </>
     );
   };
@@ -585,132 +623,135 @@ function GameStudio() {
   const visible = model ? model.elements.filter((e) => e.groups.length > 0 || e.id === "trees") : [];
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
-      {look ? (
-        <StudioViewport scene={scene} mesh={mesh} look={look} wireframe={wireframe} showGround={showGround} view={view} viewNonce={viewNonce} bottomInset={benchH} />
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-          {failed ? (
-            <>
-              <p className="text-sm text-destructive">{failed}</p>
-              <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm text-primary-foreground">
-                <FolderUp className="h-4 w-4" /> Repo ZIP betöltése
-              </button>
-            </>
-          ) : (
-            <>
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">{status}</p>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/55">
-        GameStudio{repo ? ` · ${repo.name}` : ""}
-      </div>
-
-      {showRef && (
-        <button type="button" onClick={() => setRefLarge(true)} className="absolute right-3 top-3 overflow-hidden rounded-md border border-border shadow-2xl" title="Referencia kép nagyítása">
-          <img src={referenceAsset.url} alt="Referencia: erdő vastag, támasztógyökeres fatörzsekkel" className="h-24 w-auto object-cover opacity-90 sm:h-32" />
-        </button>
-      )}
-
-      {notice && (
-        <div role="status" className="absolute left-1/2 top-9 z-30 w-max max-w-[90%] -translate-x-1/2 rounded-md border border-primary/40 bg-card/95 px-3 py-1.5 text-center text-xs shadow-lg">
-          {notice}
-        </div>
-      )}
-
-      {/* Bottom workbench: the drawer opens upwards from the dock; nothing else covers the 3D view. */}
-      <div ref={bench} className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
-        {panel && model && (
-          <div className="mx-auto w-full max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 rounded-t-2xl border-x border-t border-border bg-sidebar/92 shadow-[0_-12px_40px_-20px_var(--color-glow)] backdrop-blur-md lg:mx-4 lg:w-auto">
-            <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2 lg:px-4">
-              <h2 className="min-w-0 flex-1 truncate font-display text-[15px] font-semibold">{panelTitle}</h2>
-              <label className="relative flex h-9 w-36 items-center sm:w-56">
-                <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Keresés…" aria-label="Érték keresése" className="h-9 w-full rounded-lg border border-input bg-background/60 pl-7 pr-2 text-[13px] outline-none focus:border-primary" />
-              </label>
-              {panel !== "all" && panel !== "view" && panel !== "changes" && changedBy(panel) > 0 && (
-                <button type="button" onClick={() => resetElement(panel)} className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary" title="Elem visszaállítása" aria-label="Elem visszaállítása">
-                  <RotateCcw className="h-4 w-4" />
+    <RemovalContext.Provider value={removalApi}>
+      <div className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
+        {look ? (
+          <StudioViewport scene={scene} mesh={mesh} look={look} wireframe={wireframe} showGround={showGround} view={view} viewNonce={viewNonce} bottomInset={benchH} hidden={removal?.hidden} />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            {failed ? (
+              <>
+                <p className="text-sm text-destructive">{failed}</p>
+                <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm text-primary-foreground">
+                  <FolderUp className="h-4 w-4" /> Repo ZIP betöltése
                 </button>
-              )}
-              <button type="button" onClick={() => setPanel(null)} className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/80" aria-label="Panel lecsukása">
-                <ChevronDown className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="panel-scroll max-h-[48dvh] overflow-y-auto overscroll-contain px-4 lg:max-h-[44dvh]">
-              {query.trim().length >= 2 ? (
-                <div className="divide-y divide-border/50 py-1">
-                  {searchHits.length === 0 && <p className="py-4 text-[13px] text-muted-foreground">Nincs találat.</p>}
-                  {searchHits.map(({ row, where }) => (
-                    <div key={row.key}>
-                      <p className="pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">{where}</p>
-                      <RowView model={model} row={row} edits={edits} onSet={onSet} />
-                    </div>
-                  ))}
-                </div>
-              ) : panel === "view" ? (
-                viewBody()
-              ) : panel === "changes" ? (
-                <ChangesPanel model={model} repoName={repo?.name ?? ""} diffs={diffs} labels={labels} onDownloadPatch={onDownloadPatch} onDownloadFilePatch={onDownloadFilePatch} onCopy={onCopyDiff} onApply={() => fileInput.current?.click()} onRevert={revertIds} />
-              ) : panel === "all" ? (
-                <div className="py-1">
-                  {visible.map((e) => (
-                    <Fold key={e.id} title={e.label} badge={changedBy(e.id)}>
-                      {() => <div className="pl-1">{elementBody(e.id)}</div>}
-                    </Fold>
-                  ))}
-                </div>
-              ) : (
-                <div className={panel === "trees" ? "py-1" : "gap-6 py-1 lg:columns-2 2xl:columns-3"}>{elementBody(panel)}</div>
-              )}
-            </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">{status}</p>
+              </>
+            )}
           </div>
         )}
 
-        <nav className="flex items-center gap-1.5 border-t border-border bg-sidebar/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:px-3" aria-label="Elemek">
-          <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
-            <DockChip on={panel === "all"} onClick={() => openPanel("all")} label="Lista" icon={<List className="h-4 w-4" />} />
-            {visible.map((e) => (
-              <DockChip key={e.id} on={panel === e.id} current={scene === e.scene && e.scene !== "world"} onClick={() => openPanel(e.id)} label={e.short} badge={changedBy(e.id)} />
-            ))}
-            <DockChip on={panel === "changes"} onClick={() => openPanel("changes")} label="Változások" icon={<GitCompareArrows className="h-4 w-4" />} badge={totalChanged} />
-            <DockChip on={panel === "view"} onClick={() => openPanel("view")} label="Nézet" icon={<Eye className="h-4 w-4" />} />
-          </div>
-          <button type="button" onClick={() => fileInput.current?.click()} disabled={busy} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-foreground/85 disabled:opacity-50" title="Repo (ZIP), patch vagy TreeTuning.json betöltése" aria-label="Repo betöltése">
-            <FolderUp className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={onDownload} disabled={busy || !model} className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-medium text-primary-foreground shadow-[0_0_30px_-8px_var(--color-glow)] transition hover:brightness-110 disabled:opacity-60 lg:px-4">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            <span>ZIP</span>
-            {totalChanged > 0 && <span className="rounded-full bg-primary-foreground/20 px-1.5 font-mono text-[10px]">{totalChanged}</span>}
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".zip,.json,.patch,.diff,application/zip,application/json,text/x-diff,text/x-patch"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void loadRepoFile(f);
-              e.target.value = "";
-            }}
-          />
-        </nav>
-      </div>
-
-      {refLarge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur" onClick={() => setRefLarge(false)}>
-          <img src={referenceAsset.url} alt="Referencia kép" className="max-h-full max-w-full rounded-lg shadow-2xl" />
-          <button type="button" className="absolute right-4 top-4 rounded-full bg-card p-2" aria-label="Bezárás">
-            <X className="h-4 w-4" />
-          </button>
+        <div className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/55">
+          GameStudio{repo ? ` · ${repo.name}` : ""}
         </div>
-      )}
-    </div>
+
+        {showRef && (
+          <button type="button" onClick={() => setRefLarge(true)} className="absolute right-3 top-3 overflow-hidden rounded-md border border-border shadow-2xl" title="Referencia kép nagyítása">
+            <img src={referenceAsset.url} alt="Referencia: erdő vastag, támasztógyökeres fatörzsekkel" className="h-24 w-auto object-cover opacity-90 sm:h-32" />
+          </button>
+        )}
+
+        {notice && (
+          <div role="status" className="absolute left-1/2 top-9 z-30 w-max max-w-[90%] -translate-x-1/2 rounded-md border border-primary/40 bg-card/95 px-3 py-1.5 text-center text-xs shadow-lg">
+            {notice}
+          </div>
+        )}
+
+        {/* Bottom workbench: the drawer opens upwards from the dock; nothing else covers the 3D view. */}
+        <div ref={bench} className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
+          {panel && model && (
+            <div className="mx-auto w-full max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 rounded-t-2xl border-x border-t border-border bg-sidebar/92 shadow-[0_-12px_40px_-20px_var(--color-glow)] backdrop-blur-md lg:mx-4 lg:w-auto">
+              <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2 lg:px-4">
+                <h2 className="min-w-0 flex-1 truncate font-display text-[15px] font-semibold">{panelTitle}</h2>
+                <label className="relative flex h-9 w-36 items-center sm:w-56">
+                  <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Keresés…" aria-label="Érték keresése" className="h-9 w-full rounded-lg border border-input bg-background/60 pl-7 pr-2 text-[13px] outline-none focus:border-primary" />
+                </label>
+                {panel !== "all" && panel !== "view" && panel !== "changes" && <ItemAction id={`e:${panel}`} label={cat?.items.get(`e:${panel}`)?.label ?? panelTitle} />}
+                {panel !== "all" && panel !== "view" && panel !== "changes" && changedBy(panel) > 0 && (
+                  <button type="button" onClick={() => resetElement(panel)} className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary" title="Elem visszaállítása" aria-label="Elem visszaállítása">
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                )}
+                <button type="button" onClick={() => setPanel(null)} className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/80" aria-label="Panel lecsukása">
+                  <ChevronDown className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="panel-scroll max-h-[48dvh] overflow-y-auto overscroll-contain px-4 lg:max-h-[44dvh]">
+                {query.trim().length >= 2 ? (
+                  <div className="divide-y divide-border/50 py-1">
+                    {searchHits.length === 0 && <p className="py-4 text-[13px] text-muted-foreground">Nincs találat.</p>}
+                    {searchHits.map(({ row, where }) => (
+                      <div key={row.key}>
+                        <p className="pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">{where}</p>
+                        <RowView model={model} row={row} edits={edits} onSet={onSet} />
+                      </div>
+                    ))}
+                  </div>
+                ) : panel === "view" ? (
+                  viewBody()
+                ) : panel === "changes" ? (
+                  <ChangesPanel model={model} repoName={repo?.name ?? ""} diffs={diffs} labels={labels} onDownloadPatch={onDownloadPatch} onDownloadFilePatch={onDownloadFilePatch} onCopy={onCopyDiff} onApply={() => fileInput.current?.click()} onRevert={revertIds} />
+                ) : panel === "all" ? (
+                  <div className="py-1">
+                    {visible.map((e) => (
+                      <Fold key={e.id} title={e.label} badge={changedBy(e.id)} action={<ItemAction id={`e:${e.id}`} label={cat?.items.get(`e:${e.id}`)?.label ?? e.label} />}>
+                        {() => <div className="pl-1">{elementBody(e.id)}</div>}
+                      </Fold>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={panel === "trees" ? "py-1" : "gap-6 py-1 lg:columns-2 2xl:columns-3"}>{elementBody(panel)}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <nav className="flex items-center gap-1.5 border-t border-border bg-sidebar/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:px-3" aria-label="Elemek">
+            <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
+              <DockChip on={panel === "all"} onClick={() => openPanel("all")} label="Lista" icon={<List className="h-4 w-4" />} />
+              {visible.map((e) => (
+                <DockChip key={e.id} on={panel === e.id} current={scene === e.scene && e.scene !== "world"} onClick={() => openPanel(e.id)} label={e.short} badge={changedBy(e.id)} />
+              ))}
+              <DockChip on={panel === "changes"} onClick={() => openPanel("changes")} label="Változások" icon={<GitCompareArrows className="h-4 w-4" />} badge={changeTotal} />
+              <DockChip on={panel === "view"} onClick={() => openPanel("view")} label="Nézet" icon={<Eye className="h-4 w-4" />} />
+            </div>
+            <button type="button" onClick={() => fileInput.current?.click()} disabled={busy} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-foreground/85 disabled:opacity-50" title="Repo (ZIP), patch vagy TreeTuning.json betöltése" aria-label="Repo betöltése">
+              <FolderUp className="h-5 w-5" />
+            </button>
+            <button type="button" onClick={onDownload} disabled={busy || !model} className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-medium text-primary-foreground shadow-[0_0_30px_-8px_var(--color-glow)] transition hover:brightness-110 disabled:opacity-60 lg:px-4">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span>ZIP</span>
+              {changeTotal > 0 && <span className="rounded-full bg-primary-foreground/20 px-1.5 font-mono text-[10px]">{changeTotal}</span>}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".zip,.json,.patch,.diff,application/zip,application/json,text/x-diff,text/x-patch"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void loadRepoFile(f);
+                e.target.value = "";
+              }}
+            />
+          </nav>
+        </div>
+
+        {refLarge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur" onClick={() => setRefLarge(false)}>
+            <img src={referenceAsset.url} alt="Referencia kép" className="max-h-full max-w-full rounded-lg shadow-2xl" />
+            <button type="button" className="absolute right-4 top-4 rounded-full bg-card p-2" aria-label="Bezárás">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </RemovalContext.Provider>
   );
 }
 

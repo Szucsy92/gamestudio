@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { codeRef, countChanged, valueOf, type Group, type Model, type Row } from "@/studio/catalog";
 import { hintFor, snippetFor } from "@/studio/scan";
 import { linearTripleToHex, srgb2lin } from "@/studio/look";
+import { ItemAction, rowRemoval, useRemoval } from "@/components/removal-context";
 
 export type SetValues = (pairs: [string, number][]) => void;
 
@@ -89,10 +90,24 @@ function useHint(model: Model, row: Row) {
   }, [model, row]);
 }
 
+/** A row whose number was deleted (by itself or by something bigger): dimmed, with its undo. */
+function DeletedRow({ row, id, own }: { row: Row; id: string; own: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-2 py-2.5 opacity-70">
+      <span className="min-w-0 text-[14px] leading-tight text-muted-foreground line-through lg:text-[13px]">
+        {row.label}
+        <span className="mt-0.5 block text-[11px] no-underline">{own ? "Törölve a kódból" : "Egy másik törlés miatt eltűnt"}</span>
+      </span>
+      <ItemAction id={id} label={row.label} dead={!own} />
+    </div>
+  );
+}
+
 const NumRow = memo(function NumRow({ model, row, value, base, onSet }: { model: Model; row: Row; value: number; base: number; onSet: SetValues }) {
   const valueRef = useRef(value);
   valueRef.current = value;
   const hint = useHint(model, row);
+  const rem = rowRemoval(useRemoval(), row.ids);
   const changed = Math.abs(value - base) > 1e-12;
   const { step, int } = row.range;
   const min = Math.min(row.range.min, value);
@@ -103,6 +118,7 @@ const NumRow = memo(function NumRow({ model, row, value, base, onSet }: { model:
     valueRef.current = c;
     onSet(row.ids.map((id) => [id, c]));
   };
+  if (rem?.dead) return <DeletedRow row={row} id={rem.id} own={rem.own} />;
   return (
     <div className="py-2.5">
       <div className="flex items-start justify-between gap-2">
@@ -130,6 +146,7 @@ const NumRow = memo(function NumRow({ model, row, value, base, onSet }: { model:
             className={`h-8 w-[5.4rem] rounded-md border border-input bg-background/60 px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-primary ${changed ? "text-primary" : "text-foreground"}`}
           />
           {row.unit && <span className="w-7 font-mono text-[10px] text-muted-foreground">{row.unit}</span>}
+          {rem && <ItemAction id={rem.id} label={row.label} />}
         </div>
       </div>
       {row.code && <CodeLine model={model} id={row.ids[0]!} />}
@@ -151,6 +168,7 @@ const hex6 = (n: number) => `#${Math.max(0, Math.min(0xffffff, Math.round(n))).t
 
 function ColorRow({ model, row, edits, onSet }: { model: Model; row: Row; edits: Record<string, number>; onSet: SetValues }) {
   const hint = useHint(model, row);
+  const rem = rowRemoval(useRemoval(), row.ids);
   let hex: string, baseHex: string;
   if (row.kind === "color") {
     hex = hex6(valueOf(model, edits, row.ids[0]!));
@@ -171,6 +189,7 @@ function ColorRow({ model, row, edits, onSet }: { model: Model; row: Row; edits:
     }
   };
   const reset = () => onSet(row.ids.map((id) => [id, model.lits.get(id)?.value ?? 0]));
+  if (rem?.dead) return <DeletedRow row={row} id={rem.id} own={rem.own} />;
   return (
     <div className="py-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -189,6 +208,7 @@ function ColorRow({ model, row, edits, onSet }: { model: Model; row: Row; edits:
           <label className="relative h-10 w-14 cursor-pointer overflow-hidden rounded-lg border border-border lg:h-8 lg:w-12" style={{ background: hex }}>
             <input type="color" value={hex} onChange={(e) => apply(e.target.value)} aria-label={`${row.label} színe`} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
           </label>
+          {rem && <ItemAction id={rem.id} label={row.label} />}
         </div>
       </div>
       {row.code && <CodeLine model={model} id={row.ids[0]!} />}
@@ -202,17 +222,20 @@ export function RowView({ model, row, edits, onSet }: { model: Model; row: Row; 
   return <NumRow model={model} row={row} value={valueOf(model, edits, row.ids[0]!)} base={lit?.value ?? 0} onSet={onSet} />;
 }
 
-/** A fold-out ("lenyíló") section. */
-export function Fold({ title, badge, count, defaultOpen = false, children, depth = 0 }: { title: React.ReactNode; badge?: number; count?: number | undefined; defaultOpen?: boolean; children: () => React.ReactNode; depth?: number }) {
+/** A fold-out ("lenyíló") section; `action` (e.g. a delete button) sits at the end of its header, outside the toggle. */
+export function Fold({ title, badge, count, defaultOpen = false, children, depth = 0, action }: { title: React.ReactNode; badge?: number; count?: number | undefined; defaultOpen?: boolean; children: () => React.ReactNode; depth?: number; action?: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className={`break-inside-avoid border-b border-border/60 ${depth ? "ml-2 border-l border-b-0 pl-3" : ""}`}>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-h-12 w-full items-center gap-2 py-2 text-left lg:min-h-10">
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "" : "-rotate-90"}`} />
-        <span className={`min-w-0 flex-1 ${depth ? "text-[13px] text-foreground/85" : "text-[14px] font-medium text-foreground"}`}>{title}</span>
-        {count !== undefined && <span className="font-mono text-[10px] text-muted-foreground">{count}</span>}
-        {!!badge && <span className="rounded-full bg-primary/15 px-1.5 font-mono text-[10px] text-primary">{badge}</span>}
-      </button>
+      <div className="flex items-center gap-1">
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-h-12 min-w-0 flex-1 items-center gap-2 py-2 text-left lg:min-h-10">
+          <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "" : "-rotate-90"}`} />
+          <span className={`min-w-0 flex-1 ${depth ? "text-[13px] text-foreground/85" : "text-[14px] font-medium text-foreground"}`}>{title}</span>
+          {count !== undefined && <span className="font-mono text-[10px] text-muted-foreground">{count}</span>}
+          {!!badge && <span className="rounded-full bg-primary/15 px-1.5 font-mono text-[10px] text-primary">{badge}</span>}
+        </button>
+        {action}
+      </div>
       {open && <div className="pb-2">{children()}</div>}
     </section>
   );
