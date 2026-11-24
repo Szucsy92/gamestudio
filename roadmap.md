@@ -18,3 +18,12 @@
 - [x] Kódbeli név zárójelben a magyar címke alatt (csak ha eltér)
 - [x] Változások mappaszerkezet szerint, unified diff / patch letöltés (egész és fájlonként), patch a ZIP-ben, patch visszaalkalmazása
 - [x] Visszaállító patch (egész és fájlonként, ZIP-ben is; új alapnál automatikusan), visszatölthető a mostani értékekre
+
+## Törlés
+- [ ] Törlőmotor: Kotlin/GLSL szerkezet, hivatkozások követése, fordítható marad (blokkok, ágak, vesszők)
+- [ ] Érték törlése (tag a kifejezésből / deklaráció minden hivatkozással), ha típusbiztos
+- [ ] Animációk felismerése és törlése (időfüggő tagok)
+- [ ] Elemek részei (kapu oszlop, gerenda, hártya…) és teljes elemek (kapu, monolit, gyűrű, lámpás, fekete lyuk, power-upok) törlése
+- [ ] Visszavonás: elemenként visszaállítás, visszavonás/újra, minden vissza
+- [ ] Diff/patch/ZIP a törlésekkel; 3D előnézet elrejti a törölt részeket
+- [ ] Ellenőrzés: valódi Gradle fordítás a törlések után; tesztek

@@ -47,6 +47,8 @@ export interface TreeBase {
 
 export interface Model {
   files: Map<string, FileIndex>;
+  /** Every Kotlin source of the repo (tests included), for the deletion engine. */
+  kt: Map<string, string>;
   lits: Map<string, Literal>;
   elements: ElementDef[];
   curated: Map<string, string[]>;
@@ -275,6 +277,7 @@ export function buildModel(texts: Map<string, string>): Model {
   for (const e of elements) if (e.id !== "code") for (const g of e.groups) named += g.rows.length;
   return {
     files,
+    kt: new Map([...texts].filter(([p]) => p.endsWith(".kt"))),
     lits,
     elements,
     curated,
