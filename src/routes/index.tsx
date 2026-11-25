@@ -15,6 +15,7 @@ import { buildModel, countChanged, ELEMENTS, labelIndex, treeChangedCount, treeE
 import { applyPatch, buildPatch, editsFromPatched, fileDiffs, folderTree, restorePatch, treeText, type FileDiff } from "@/studio/diff";
 import type { ElementId } from "@/studio/curated";
 import { lookFrom } from "@/studio/look";
+import { extractDynamicScene } from "@/studio/scene";
 import { previewEdits, tryRemove, validRemovals } from "@/studio/removal-state";
 import { catalogFor, computeRemoval, itemLabel } from "@/studio/removals";
 import { buildRepoZip, clearStoredRepo, downloadBlob, openStartRepo, parseRepoZip, patchHeader, readRepoText, repoKey, repoWithFiles, saveStoredRepo, tuningJson, type RepoData } from "@/studio/repo";
@@ -23,10 +24,10 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "GameStudio – a Woodland Weave Run minden eleme 3D-ben" },
-      { name: "description", content: "Fák, kapuk, oszlopok, fekete lyuk, power-upok, színek és fények: a játék összes értéke csúszkával, élő 3D előnézettel és teljes repo ZIP exporttal." },
-      { property: "og:title", content: "GameStudio – a Woodland Weave Run minden eleme 3D-ben" },
-      { property: "og:description", content: "A játék repójának minden értéke csúszkával, élő 3D előnézettel; letöltés teljes, fordítható ZIP-ként." },
+      { title: "GameStudio – Univerzális vizuális 3D szerkesztő Kotlin repókhoz" },
+      { name: "description", content: "Tölts fel bármilyen Kotlin/OpenGL játékrepót: automatikus szerkezet-, paraméter- és 3D geometria-felismerés, csúszkák, kapcsolók, törlés és fordítható ZIP export." },
+      { property: "og:title", content: "GameStudio – Univerzális vizuális 3D szerkesztő Kotlin repókhoz" },
+      { property: "og:description", content: "Automatikus struktúra- és 3D-felismerés bármilyen feltöltött Kotlin repóhoz, élő előnézettel és fordítható ZIP exporttal." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -138,6 +139,7 @@ function GameStudio() {
   const [prop, setProp] = useState(true);
   const [panel, setPanel] = useState<Panel | null>(null);
   const [lastScene, setLastScene] = useState<SceneId>("tree");
+  const [focusId, setFocusId] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState("");
   const [lifelike, setLifelike] = useState(true);
   const [wireframe, setWireframe] = useState(false);
@@ -195,6 +197,19 @@ function GameStudio() {
       setSpecies(base.map((p) => ({ ...p })) as SpeciesParams);
       setActive(Math.min(2, model.tree.count - 1));
     }
+    if (!model.tree.found) {
+      const firstDyn = model.elements.find((e) => e.scene === "dynamic");
+      if (firstDyn) {
+        setLastScene("dynamic");
+        setFocusId(firstDyn.id);
+      } else {
+        setLastScene("world");
+        setFocusId(undefined);
+      }
+    } else if (model.dynamic) {
+      setLastScene("tree");
+      setFocusId(undefined);
+    }
   }, [model, key]);
 
   useEffect(() => {
@@ -240,6 +255,7 @@ function GameStudio() {
   const deferredParams = useDeferredValue(params);
   const mesh = useMemo(() => buildTree(deferredParams, active, shape, { lifelike, soilBottom: tree?.soilBottom ?? false }), [deferredParams, active, shape, lifelike, tree?.soilBottom]);
   const look = useMemo(() => (model ? lookFrom(model, previewEdits(model, edits, removal)) : null), [model, edits, removal]);
+  const dynamicScene = useMemo(() => (model ? extractDynamicScene(model, previewEdits(model, edits, removal), removal?.hidden) : undefined), [model, edits, removal]);
   const overLimit = mesh.vertexCount > MAX_VERTICES;
 
   const onSet: SetValues = useCallback((pairs) => {
@@ -277,8 +293,11 @@ function GameStudio() {
       return;
     }
     setPanel(p);
-    const el = ELEMENTS.find((e) => e.id === p);
-    if (el) setLastScene(el.scene);
+    const el = model?.elements.find((e) => e.id === p) ?? ELEMENTS.find((e) => e.id === p);
+    if (el) {
+      setLastScene(el.scene);
+      setFocusId(el.scene === "dynamic" ? el.id : undefined);
+    }
   };
 
   const scene: SceneId = lastScene;
@@ -634,14 +653,23 @@ function GameStudio() {
     </div>
   );
 
-  const panelTitle = panel === "all" ? "Összes elem" : panel === "view" ? "Nézet és repo" : panel === "changes" ? "Változások és patch" : panel ? ELEMENTS.find((e) => e.id === panel)!.label : "";
-  const visible = model ? model.elements.filter((e) => e.groups.length > 0 || e.id === "trees") : [];
+  const panelTitle =
+    panel === "all"
+      ? "Összes elem"
+      : panel === "view"
+        ? "Nézet és repo"
+        : panel === "changes"
+          ? "Változások és patch"
+          : panel
+            ? (model?.elements.find((e) => e.id === panel)?.label ?? ELEMENTS.find((e) => e.id === panel)?.label ?? panel)
+            : "";
+  const visible = model ? model.elements.filter((e) => e.groups.length > 0 || (e.id === "trees" && model.tree.found)) : [];
 
   return (
     <RemovalContext.Provider value={removalApi}>
       <div className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
         {look ? (
-          <StudioViewport scene={scene} mesh={mesh} look={look} wireframe={wireframe} showGround={showGround} view={view} viewNonce={viewNonce} bottomInset={benchH} hidden={removal?.hidden} />
+          <StudioViewport scene={scene} mesh={mesh} look={look} dynamicScene={dynamicScene} focusId={focusId} hasTree={model?.tree.found} wireframe={wireframe} showGround={showGround} view={view} viewNonce={viewNonce} bottomInset={benchH} hidden={removal?.hidden} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
             {failed ? (
@@ -730,7 +758,7 @@ function GameStudio() {
             <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
               <DockChip on={panel === "all"} onClick={() => openPanel("all")} label="Lista" icon={<List className="h-4 w-4" />} />
               {visible.map((e) => (
-                <DockChip key={e.id} on={panel === e.id} current={scene === e.scene && e.scene !== "world"} onClick={() => openPanel(e.id)} label={e.short} badge={changedBy(e.id)} />
+                <DockChip key={e.id} on={panel === e.id} current={e.scene === "dynamic" ? scene === "dynamic" && focusId === e.id : scene === e.scene && e.scene !== "world"} onClick={() => openPanel(e.id)} label={e.short} badge={changedBy(e.id)} />
               ))}
               <DockChip on={panel === "changes"} onClick={() => openPanel("changes")} label="Változások" icon={<GitCompareArrows className="h-4 w-4" />} badge={changeTotal} />
               <DockChip on={panel === "view"} onClick={() => openPanel("view")} label="Nézet" icon={<Eye className="h-4 w-4" />} />

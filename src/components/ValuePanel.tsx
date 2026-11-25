@@ -216,7 +216,49 @@ function ColorRow({ model, row, edits, onSet }: { model: Model; row: Row; edits:
   );
 }
 
+function BoolRow({ model, row, edits, onSet }: { model: Model; row: Row; edits: Record<string, number>; onSet: SetValues }) {
+  const hint = useHint(model, row);
+  const rem = rowRemoval(useRemoval(), row.ids);
+  const id = row.ids[0]!;
+  const lit = model.lits.get(id);
+  const base = (lit?.value ?? 0) >= 0.5;
+  const on = valueOf(model, edits, id) >= 0.5;
+  const changed = on !== base;
+  if (rem?.dead) return <DeletedRow row={row} id={rem.id} own={rem.own} />;
+  return (
+    <div className="py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 text-[14px] leading-tight text-foreground/90 lg:text-[13px]">
+          {row.label}
+          <CodeRef model={model} row={row} />
+          {hint && <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{hint}</span>}
+        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {changed && (
+            <button type="button" onClick={() => onSet([[id, base ? 1 : 0]])} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:text-primary" title={`Vissza: ${base ? "be" : "ki"}`} aria-label={`${row.label} visszaállítása`}>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={on}
+            aria-label={row.label}
+            onClick={() => onSet([[id, on ? 0 : 1]])}
+            className={`relative h-8 w-14 shrink-0 rounded-full border transition ${on ? "border-primary bg-primary" : "border-border bg-secondary"}`}
+          >
+            <span className={`absolute top-1 h-5 w-5 rounded-full bg-background shadow transition-all ${on ? "left-7" : "left-1"}`} />
+          </button>
+          {rem && <ItemAction id={rem.id} label={row.label} />}
+        </div>
+      </div>
+      {row.code && <CodeLine model={model} id={id} />}
+    </div>
+  );
+}
+
 export function RowView({ model, row, edits, onSet }: { model: Model; row: Row; edits: Record<string, number>; onSet: SetValues }) {
+  if (row.kind === "bool") return <BoolRow model={model} row={row} edits={edits} onSet={onSet} />;
   if (row.kind !== "num") return <ColorRow model={model} row={row} edits={edits} onSet={onSet} />;
   const lit = model.lits.get(row.ids[0]!);
   return <NumRow model={model} row={row} value={valueOf(model, edits, row.ids[0]!)} base={lit?.value ?? 0} onSet={onSet} />;

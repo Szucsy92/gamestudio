@@ -28,7 +28,7 @@ export interface RepoData {
 /** Folder the studio adds next to the repo in its export; ignored when such a ZIP is loaded back. */
 export const STUDIO_DIR = "GameStudio";
 export const DEFAULT_REPO_URL = defaultRepoAsset.url;
-export const DEFAULT_REPO_NAME = "woodland-weave-run 2.0.0 (build 586)";
+export const DEFAULT_REPO_NAME = "woodland-weave-run 2.0.0";
 
 export function repoKey(r: Pick<RepoData, "name" | "size" | "loadedAt">) {
   return `${r.name}|${r.size}|${r.loadedAt}`;
@@ -63,8 +63,8 @@ export async function parseRepoZip(data: ArrayBuffer, name: string, source: Repo
     files.set(rel, new TextEncoder().encode(up));
     upgraded.push(rel);
   }
-  if (![...texts.keys()].some((p) => p.endsWith("/Meshes.kt") || p.endsWith("/Simulation.kt") || p.endsWith("/GameRenderer.kt"))) {
-    throw new Error("Ebben a ZIP-ben nincs a játék Kotlin kódja (Meshes.kt, GameRenderer.kt, Simulation.kt).");
+  if (!texts.size) {
+    throw new Error("Ebben a ZIP-ben nincs Kotlin forrásfájl (.kt).");
   }
   return { name, root, files, texts, size: data.byteLength, source, loadedAt, ...(upgraded.length ? { upgraded } : {}) };
 }
@@ -220,13 +220,15 @@ export async function buildRepoZip(input: ExportInput): Promise<Blob> {
   const studio = zip.folder(STUDIO_DIR)!;
   const rows = changes.map(({ lit, to }) => `| \`${lit.file.split("/").pop()}:${lit.line}\` | ${labelOf(lit)} | \`${lit.raw}\` | \`${formatLiteral(lit, to)}\` |`);
   const warnings: string[] = [];
-  const sp = SPECIES[input.activeSpecies]!;
-  for (let shape = 0; shape < 4; shape++) {
-    const m = buildTree(input.species[input.activeSpecies]!, input.activeSpecies, shape, { lifelike: true, soilBottom: input.soilBottom });
-    if (m.vertexCount > MAX_VERTICES) warnings.push(`${sp.label}, shape ${shape}: ${m.vertexCount} csúcspont – több, mint a GLES határ (${MAX_VERTICES}).`);
-    studio.file(`mesh/tree_body_${sp.kt}_shape${shape}.obj`, toObj(m, `tree_body_${sp.kt}_shape${shape}`, [`GameStudio – ${sp.label}, shape ${shape}`, "units: meters, Y up, soil at y = 1.1"]));
+  if (model.tree.found) {
+    const sp = SPECIES[input.activeSpecies]!;
+    for (let shape = 0; shape < 4; shape++) {
+      const m = buildTree(input.species[input.activeSpecies]!, input.activeSpecies, shape, { lifelike: true, soilBottom: input.soilBottom });
+      if (m.vertexCount > MAX_VERTICES) warnings.push(`${sp.label}, shape ${shape}: ${m.vertexCount} csúcspont – több, mint a GLES határ (${MAX_VERTICES}).`);
+      studio.file(`mesh/tree_body_${sp.kt}_shape${shape}.obj`, toObj(m, `tree_body_${sp.kt}_shape${shape}`, [`GameStudio – ${sp.label}, shape ${shape}`, "units: meters, Y up, soil at y = 1.1"]));
+    }
+    studio.file("TreeTuning.json", tuningJson(input.species, input.speciesCount, input.activeSpecies));
   }
-  studio.file("TreeTuning.json", tuningJson(input.species, input.speciesCount, input.activeSpecies));
   if (diffs.length) {
     studio.file("changes.patch", buildPatch(diffs, patchHeader(repo, changes.length, diffs.length, false, removed)));
     for (const d of diffs) studio.file(`patches/${d.path}.patch`, d.patch);

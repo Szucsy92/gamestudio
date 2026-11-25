@@ -5,7 +5,9 @@
  */
 import type { Literal } from "./scan";
 
-export type ElementId = "trees" | "gates" | "hole" | "orbs" | "colors" | "lights" | "graphics" | "gameplay" | "sound" | "other" | "code";
+export type BuiltinElementId = "trees" | "gates" | "hole" | "orbs" | "colors" | "lights" | "graphics" | "gameplay" | "sound" | "other" | "code";
+/** Built-in categories plus dynamically discovered visual objects ("obj:<section>"). */
+export type ElementId = BuiltinElementId | (string & {});
 
 export type CuratedSrc =
   | { file: string; decl: string }

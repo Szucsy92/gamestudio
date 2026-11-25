@@ -3,7 +3,7 @@
  * label it, and writes changed values back into the exact same spot. Pure TypeScript: no React, no three.js.
  */
 
-export type LitKind = "int" | "long" | "float" | "double" | "hex";
+export type LitKind = "int" | "long" | "float" | "double" | "hex" | "bool";
 
 export interface Literal {
   /** `${file}#${ordinal}`: stable for one loaded repo. */
@@ -93,9 +93,10 @@ function scopeFromHeader(header: string): Scope {
 function sectionName(scopes: Scope[], fileBase: string): string {
   const named = scopes.filter((s) => s.name && s.name !== "companion");
   const fun = [...named].reverse().find((s) => s.kind === "fun");
-  const cls = [...named].reverse().find((s) => s.kind === "class");
-  if (fun) return `${cls ? cls.name : fileBase}.${fun.name}`;
-  return cls ? cls.name : fileBase;
+  const classes = named.filter((s) => s.kind === "class").map((s) => s.name);
+  const clsPath = classes.length ? classes.join(".") : "";
+  if (fun) return `${clsPath || fileBase}.${fun.name}`;
+  return clsPath || fileBase;
 }
 
 interface Pending {
@@ -367,7 +368,41 @@ export function scanKotlin(file: string, src: string): Literal[] {
       }
     }
     if (ID_CHAR.test(c)) {
+      const start = i;
       while (i < n && ID_CHAR.test(src[i]!)) i++;
+      const word = src.slice(start, i);
+      if ((word === "true" || word === "false") && !skipping()) {
+        const inFunction = scopes.some((s) => s.kind !== "class");
+        if (!inFunction) {
+          const d = declFor(start);
+          if (d.declName) {
+            const header = src.slice(stmtStart, start);
+            const ctor = /\bclass\s+(\w+)\s*(?:<[^>]*>)?\s*\(/.exec(header);
+            const section = ctor ? ctor[1]! : sectionName(scopes, fileBase);
+            pending.push({
+              lit: {
+                file,
+                start,
+                end: i,
+                raw: word,
+                value: word === "true" ? 1 : 0,
+                kind: "bool",
+                suffix: "",
+                leadingDot: false,
+                upperHex: false,
+                glsl: false,
+                section,
+                inFunction: false,
+                line: lineAt(starts, start),
+                stmtLine: lineAt(starts, stmtStart),
+              },
+              declName: d.declName,
+              named: d.named,
+              stmt: stmtId,
+            });
+          }
+        }
+      }
       continue;
     }
     i++;
@@ -402,6 +437,7 @@ function trimNumber(a: number): string {
 
 /** Writes `v` the way the original literal was written (suffix, leading dot, hex case). */
 export function formatLiteral(l: Pick<Literal, "kind" | "suffix" | "leadingDot" | "upperHex" | "glsl">, v: number): string {
+  if (l.kind === "bool") return v >= 0.5 ? "true" : "false";
   if (l.kind === "hex") {
     const h = Math.max(0, Math.min(0xffffff, Math.round(v))).toString(16).padStart(6, "0");
     return `0x${l.upperHex ? h.toUpperCase() : h}`;
@@ -438,6 +474,7 @@ export interface Range {
 
 /** A slider range around the value from the file: 0…3× for positive numbers, symmetric for negative ones. */
 export function autoRange(l: Pick<Literal, "kind" | "value">): Range {
+  if (l.kind === "bool") return { min: 0, max: 1, step: 1, int: true };
   const v = l.value;
   const int = l.kind === "int" || l.kind === "long";
   const a = Math.abs(v);

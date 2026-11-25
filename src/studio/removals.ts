@@ -400,6 +400,34 @@ export function catalogFor(model: Model): Catalog {
     elementNodes.set(e.element, node);
     add(e.element, node);
   }
+  // Dynamically discovered visual objects (e.g. Visuals.GateRing, or any repo's visual object/class): deletable as whole elements.
+  for (const el of model.elements) {
+    if (!el.section || !el.file) continue;
+    const f = P.files.get(el.file);
+    if (!f) continue;
+    const leaf = el.section.split(".").pop()!;
+    const owner = el.section.includes(".") ? el.section.split(".").slice(-2, -1)[0] : undefined;
+    const decl = f.decls.find((d) => d.name === leaf && (d.kind === "class" || d.kind === "object") && (!owner || d.owner === owner));
+    if (!decl) continue;
+    const where = `${el.file.split("/").pop()}:${lineOf(f.lx.src, f.toks[decl.tok]!.s)}`;
+    const item: RemovalItem = {
+      id: `e:${el.id}`,
+      kind: "element",
+      label: el.label,
+      element: el.id,
+      preview: [el.id, el.section],
+      where,
+      apply: (R) => {
+        R.deleteDecl(decl);
+        return true;
+      },
+      probe: (R) => !!decl.stmt && R.stmtDead(decl.stmt),
+    };
+    items.set(item.id, item);
+    const node: TreeNode = { item, children: [] };
+    elementNodes.set(el.id, node);
+    add(el.id, node);
+  }
   for (const o of OBJECTS) {
     if (!rootsExist(P, o.roots)) continue;
     const item: RemovalItem = { id: `o:${o.key}`, kind: "object", label: o.label, element: o.element, parent: elementNodes.get(o.element)?.item.id, preview: o.preview, where: whereOf(P, o.roots), apply: (R) => applyRoots(P, o.roots, R), probe: (R) => rootsGone(P, o.roots, R), spans: () => rootSpans(P, o.roots) };

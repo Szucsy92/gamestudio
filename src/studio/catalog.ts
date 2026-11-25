@@ -7,14 +7,14 @@ import { autoRange, callContext, scanKotlin, type CallFrame, type Literal, type 
 import { fileDefaults, PARAM_SPECS, SPECIES, type ParamKey, type SpeciesParams, type TreeParams } from "@/tree/params";
 import { SECTION_END, SECTION_START } from "@/tree/kotlin";
 
-export type SceneId = "tree" | "gates" | "hole" | "orbs" | "world";
+export type SceneId = "tree" | "gates" | "hole" | "orbs" | "world" | "dynamic";
 
 export interface Row {
   key: string;
   label: string;
   hint?: string | undefined;
   unit?: string | undefined;
-  kind: "num" | "color" | "color3";
+  kind: "num" | "color" | "color3" | "bool";
   ids: string[];
   range: Range;
   /** Show the source line (generic rows). */
@@ -34,6 +34,10 @@ export interface ElementDef {
   short: string;
   scene: SceneId;
   groups: Group[];
+  /** Kotlin object/class section name for dynamically discovered elements (e.g. "Visuals.GateRing"). */
+  section?: string | undefined;
+  /** Repo-relative file path where this dynamic element is declared. */
+  file?: string | undefined;
 }
 
 export interface TreeBase {
@@ -54,6 +58,8 @@ export interface Model {
   curated: Map<string, string[]>;
   tree: TreeBase;
   stats: { files: number; numbers: number; named: number };
+  /** True when the repo defines modular visual objects (e.g. Visuals.* or arbitrary repo visual classes). */
+  dynamic: boolean;
 }
 
 export const ELEMENTS: { id: ElementId; label: string; short: string; scene: SceneId }[] = [
@@ -113,19 +119,80 @@ for (let i = 0; i < 8; i++) LABELS[`odd[${i}]`] = [`Féreglyuk ereklye szín ${i
 
 /** Structural indices and plain state defaults: changing them breaks the game rather than tuning it. */
 const SKIP_DECL = /^(K_\w+|KINDS|SHAPES|XYZ|YXZ|RATE|VOLUME_POLL_NS|SLOTS|vertexCount|eps)$/;
-const SKIP_SECTION = new Set(["UiState", "Settings", "UpdateEvent", "MeshData", "EffectState", "Blip"]);
+const SKIP_SECTION = new Set(["UiState", "Settings", "UpdateEvent", "MeshData", "EffectState", "Blip", "MainActivity", "SettingsRepo", "Updater"]);
+const CORE_SINGLETONS = new Set(["Palette", "SkyLight", "Quality", "Shaders", "Meshes", "GameRenderer", "Simulation", "GameEngine", "PostFx", "ShadowMap", "Effects", "GlUtil", "Mat", "GlassState", "PerfStats", "ForestAudio", "Haptics", "TiltSensor", "ForestUi", "Visuals"]);
+
+const COMMON_WORDS: Record<string, string> = {
+  ON: "Bekapcsolva",
+  BODY: "Test",
+  VEILS: "Fátylak",
+  GLOW: "Ragyogás",
+  LENS: "Lencsehatás",
+  WARP_SPORES: "Féreglyuk spórák",
+  SIZE: "Méret",
+  ALPHA: "Átlátszóság",
+  EMISSIVE: "Izzás",
+  ROUGH: "Érdesség",
+  HEIGHT: "Magasság",
+  RADIUS: "Sugár",
+  GAP: "Rés a talajtól",
+  SEE: "Láthatósági táv",
+  MAX: "Maximum",
+  COUNT: "Darabszám",
+  RANGE: "Hatótáv",
+  BOB: "Lebegés",
+  PULSE: "Pulzálás",
+  SPIN: "Forgás",
+  SPEED: "Sebesség",
+  WIDTH: "Szélesség",
+  DEPTH: "Mélység",
+  DAY_DIM: "Nappali halványítás",
+  TORUS_R: "Gyűrű sugara",
+  TORUS_TUBE: "Gyűrű vastagsága",
+  VANISH_TIME: "Eltűnési idő",
+};
+
+/** Converts UPPER_SNAKE_CASE or camelCase into a clean readable label. */
+export function humanizeIdent(name: string): string {
+  const base = name.split(/[.[]/)[0]!;
+  if (COMMON_WORDS[base]) return COMMON_WORDS[base]!;
+  const spaced = base
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .trim()
+    .toLowerCase();
+  if (!spaced) return name;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+export function humanizeObject(section: string): string {
+  const leaf = section.split(".").pop() ?? section;
+  return leaf.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim();
+}
+
+function isVisualCandidate(path: string, section: string, lits: Literal[]): boolean {
+  if (!lits.length) return false;
+  const leaf = section.split(".").pop() ?? section;
+  if (SKIP_SECTION.has(leaf) || CORE_SINGLETONS.has(section)) return false;
+  if (/\/(audio|ui|update|data|input)\//i.test(path)) return false;
+  // Nested object inside a container (e.g. Visuals.GateRing, Entities.Ship) is always a first-class visual object.
+  if (section.includes(".")) return true;
+  // Top-level object/class in a visual/rendering/3D/entity file with >= 2 tunable constants
+  const inVisualDir = /\/(gl|render|visual|scene|entity|entities|mesh|3d|world|objects?)\//i.test(path) || /(Visual|Render|Scene|Mesh|Entity|Object|Prop|Effect)/i.test(fileName(path));
+  if (inVisualDir && !CORE_SINGLETONS.has(leaf) && lits.length >= 2) return true;
+  // Or any object/class with explicit visual dimension/toggle constants
+  const visualNames = lits.filter((l) => /^(ON|SIZE|RADIUS|HEIGHT|WIDTH|DEPTH|ALPHA|EMISSIVE|ROUGH|TORUS_R|GLOW|COLOR|COUNT|SPIN|BOB)$/i.test(l.declBase ?? "")).length;
+  return visualNames >= 2;
+}
 
 function classify(path: string, decl: string, lit: Literal): ElementId {
   const base = decl.split(/[.[]/)[0]!;
-  if (/^(GATE_|SECRET_)/.test(base)) return "gates";
-  if (/^(HOLE_|WARP_|LENS_)/.test(base)) return "hole";
-  if (/^(POWERUP_|SHOCKWAVE_|ORB_)/.test(base)) return "orbs";
-  if (lit.kind === "hex" || path.endsWith("/Palette.kt")) return "colors";
-  if (path.endsWith("/SkyLight.kt")) return "lights";
+  if (lit.kind === "hex" || /Palette\.kt$/i.test(path)) return "colors";
+  if (/SkyLight|Light|Sun|Moon|Atmos/i.test(fileName(path))) return "lights";
   if (path.endsWith("/Meshes.kt")) return "trees";
-  if (/\/gl\//.test(path)) return "graphics";
-  if (/\/audio\//.test(path)) return "sound";
-  if (/\/(sim|input)\//.test(path) || path.endsWith("/GameEngine.kt")) return "gameplay";
+  if (/\/(gl|shader|render)\//i.test(path) || /Shader|PostFx|Quality|Shadow|Renderer/i.test(fileName(path))) return "graphics";
+  if (/\/(audio|sound)\//i.test(path) || /Audio|Sound|Haptics/i.test(fileName(path))) return "sound";
+  if (/\/(sim|input|game|physics)\//i.test(path) || /Engine|Simulation|Gameplay/i.test(fileName(path))) return "gameplay";
   return "other";
 }
 
@@ -199,7 +266,8 @@ export function treeEdits(base: TreeBase, species: SpeciesParams, lits: Map<stri
 }
 
 export function rowFor(l: Literal, label: string, unit?: string): Row {
-  return { key: l.id, label, unit, kind: l.kind === "hex" ? "color" : "num", ids: [l.id], range: autoRange(l), code: true };
+  const kind: Row["kind"] = l.kind === "hex" ? "color" : l.kind === "bool" ? "bool" : "num";
+  return { key: l.id, label, unit, kind, ids: [l.id], range: autoRange(l), code: true };
 }
 
 export function buildModel(texts: Map<string, string>): Model {
@@ -209,6 +277,32 @@ export function buildModel(texts: Map<string, string>): Model {
   const meshes = findFile(files, "gl/Meshes.kt");
   const region = treeRegion(meshes);
   const inTree = (l: Literal) => !!region && meshes!.path === l.file && l.start >= region[0] && l.start < region[1];
+  const tree = treeBaseFrom(files);
+
+  // 1. Discover dynamic visual objects directly from the AST/sections of the repo.
+  const bySection = new Map<string, { file: string; lits: Literal[] }>();
+  for (const f of files.values()) {
+    for (const l of f.byStart.values()) {
+      if (!l.decl || l.inFunction || inTree(l)) continue;
+      const base = l.decl.split(/[.[]/)[0]!;
+      if (SKIP_DECL.test(base) || SKIP_SECTION.has(l.section)) continue;
+      const key = `${f.path}::${l.section}`;
+      const entry = bySection.get(key);
+      if (entry) entry.lits.push(l);
+      else bySection.set(key, { file: f.path, lits: [l] });
+    }
+  }
+
+  const dynamicObjects: { id: ElementId; section: string; file: string; lits: Literal[] }[] = [];
+  const dynamicLitIds = new Set<string>();
+  for (const [key, { file, lits: secLits }] of bySection) {
+    const section = key.split("::")[1]!;
+    if (!isVisualCandidate(file, section, secLits)) continue;
+    const id: ElementId = `obj:${section}`;
+    dynamicObjects.push({ id, section, file, lits: secLits });
+    for (const l of secLits) dynamicLitIds.add(l.id);
+  }
+  const isDynamic = dynamicObjects.length > 0;
 
   const groups = new Map<ElementId, Map<string, Group>>();
   const groupOf = (el: ElementId, id: string, label: string) => {
@@ -219,13 +313,14 @@ export function buildModel(texts: Map<string, string>): Model {
     return g;
   };
 
-  // Curated controls first, in their own groups.
+  // Curated controls: kept for legacy repos (when no dynamic visual objects supersede them).
   const curated = new Map<string, string[]>();
   const used = new Set<string>();
   for (const c of CURATED) {
     const ids = resolveCurated(c, files);
     curated.set(c.key, ids);
     if (!ids.length) continue;
+    if (isDynamic && (c.element === "gates" || c.element === "hole" || c.element === "orbs")) continue;
     const first = lits.get(ids[0]!)!;
     const range = c.min !== undefined ? { min: c.min, max: c.max ?? c.min + 1, step: c.step ?? 0.01, int: (c.step ?? 0.01) >= 1 } : autoRange(first);
     const g = groupOf(c.element, `cur:${c.group}`, c.group);
@@ -237,12 +332,21 @@ export function buildModel(texts: Map<string, string>): Model {
   // Every named value (class- or file-level declaration).
   for (const f of files.values()) {
     for (const l of f.byStart.values()) {
-      if (!l.decl || l.inFunction || used.has(l.id) || inTree(l)) continue;
+      if (!l.decl || l.inFunction || used.has(l.id) || inTree(l) || dynamicLitIds.has(l.id)) continue;
       const base = l.decl.split(/[.[]/)[0]!;
       if (SKIP_DECL.test(base) || SKIP_SECTION.has(l.section)) continue;
-      const el = classify(f.path, l.decl, l);
+      let el = classify(f.path, l.decl, l);
+      if (!isDynamic) {
+        if (/^(GATE_|SECRET_)/.test(base)) el = "gates";
+        else if (/^(HOLE_|WARP_|LENS_)/.test(base)) el = "hole";
+        else if (/^(POWERUP_|SHOCKWAVE_|ORB_)/.test(base)) el = "orbs";
+      }
       const lab = LABELS[l.decl] ?? LABELS[l.declBase ?? ""];
-      const label = lab ? (l.decl !== l.declBase && LABELS[l.declBase ?? ""] && !LABELS[l.decl] ? `${lab[0]} (${l.decl.slice(l.declBase!.length)})` : lab[0]) : l.decl;
+      const label = lab
+        ? l.decl !== l.declBase && LABELS[l.declBase ?? ""] && !LABELS[l.decl]
+          ? `${lab[0]} (${l.decl.slice(l.declBase!.length)})`
+          : lab[0]
+        : humanizeIdent(l.decl);
       const gid = el === "colors" && fileName(f.path) === "Palette.kt" ? "named:palette" : `named:${f.path}:${l.section}`;
       const glabel = gid === "named:palette" ? "Játék paletta" : l.glsl ? `Shader állandók – ${l.section}` : `${fileName(f.path)} · ${l.section}`;
       groupOf(el, gid, glabel).rows.push(rowFor(l, label, lab?.[1]));
@@ -264,14 +368,46 @@ export function buildModel(texts: Map<string, string>): Model {
     codeGroups.push({ id: `code:${f.path}`, label: `${fileName(f.path)} (${sub.reduce((a, g) => a + g.rows.length, 0)} szám)`, rows: [], sub });
   }
 
-  const elements: ElementDef[] = ELEMENTS.map((e) => {
-    if (e.id === "code") return { ...e, groups: codeGroups };
+  // Build dynamic visual object elements (placed right after Trees if trees exist, or first otherwise).
+  const dynamicElements: ElementDef[] = dynamicObjects.map((obj) => {
+    const name = humanizeObject(obj.section);
+    const rows: Row[] = obj.lits.map((l) => {
+      const lab = LABELS[l.decl ?? ""] ?? LABELS[l.declBase ?? ""];
+      const label = lab ? lab[0] : humanizeIdent(l.decl ?? "");
+      return rowFor(l, label, lab?.[1]);
+    });
+    return {
+      id: obj.id,
+      label: name,
+      short: name,
+      scene: "dynamic",
+      section: obj.section,
+      file: obj.file,
+      groups: [{ id: `dyn:${obj.section}`, label: `${fileName(obj.file)} · ${obj.section}`, rows }],
+    };
+  });
+
+  const baseElements: ElementDef[] = [];
+  for (const e of ELEMENTS) {
+    if (e.id === "trees") {
+      const m = groups.get(e.id);
+      const list = m ? [...m.values()] : [];
+      if (tree.found || list.length > 0) baseElements.push({ ...e, groups: list });
+      // Insert dynamically discovered visual elements right after Trees.
+      baseElements.push(...dynamicElements);
+      continue;
+    }
+    if (isDynamic && (e.id === "gates" || e.id === "hole" || e.id === "orbs")) continue;
+    if (e.id === "code") {
+      baseElements.push({ ...e, groups: codeGroups });
+      continue;
+    }
     const m = groups.get(e.id);
     const list = m ? [...m.values()] : [];
-    // curated groups first, then named
     list.sort((a, b) => Number(b.id.startsWith("cur:")) - Number(a.id.startsWith("cur:")));
-    return { ...e, groups: list };
-  });
+    if (list.length > 0 || !isDynamic) baseElements.push({ ...e, groups: list });
+  }
+  const elements = baseElements;
 
   let named = 0;
   for (const e of elements) if (e.id !== "code") for (const g of e.groups) named += g.rows.length;
@@ -281,8 +417,9 @@ export function buildModel(texts: Map<string, string>): Model {
     lits,
     elements,
     curated,
-    tree: treeBaseFrom(files),
+    tree,
     stats: { files: files.size, numbers: lits.size, named },
+    dynamic: isDynamic,
   };
 }
 
@@ -314,7 +451,13 @@ export function treeChangedCount(base: TreeBase, species: SpeciesParams): number
 export function codeNameOf(model: Model, lit: Literal): string {
   const f = model.files.get(lit.file);
   if (lit.decl) {
-    if (!f || lit.section.includes(".")) return lit.decl;
+    if (!f) return lit.decl;
+    if (lit.section.includes(".")) {
+      // Nested object/class path (e.g. Visuals.GateRing) vs function section
+      const leaf = lit.section.split(".").pop()!;
+      const m = new RegExp(`\\b(?:object|class)\\s+${leaf}\\b`).exec(f.src);
+      return m && m.index < lit.start ? `${lit.section}.${lit.decl}` : lit.decl;
+    }
     // Members of an object/class are written with its name; top-level values (section = file name) without.
     const m = new RegExp(`\\b(?:object|class)\\s+${lit.section}\\b`).exec(f.src);
     return m && m.index < lit.start ? `${lit.section}.${lit.decl}` : lit.decl;

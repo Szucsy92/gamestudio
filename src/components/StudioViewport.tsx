@@ -6,6 +6,8 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { TREE_GROUND, type TreeMesh } from "@/tree/mesh";
 import type { SceneId } from "@/studio/catalog";
 import type { Look } from "@/studio/look";
+import type { DynamicScene } from "@/studio/scene";
+import { DynamicSceneView } from "./DynamicSceneView";
 
 export type CameraView = "full" | "base" | "top" | "crown";
 
@@ -13,6 +15,9 @@ interface Props {
   scene: SceneId;
   mesh: TreeMesh;
   look: Look;
+  dynamicScene?: DynamicScene | undefined;
+  focusId?: string | undefined;
+  hasTree?: boolean | undefined;
   wireframe: boolean;
   showGround: boolean;
   view: CameraView;
@@ -386,7 +391,15 @@ function ViewInset({ inset }: { inset: number }) {
   return null;
 }
 
-function viewFor(scene: SceneId, view: CameraView, h: number): { pos: [number, number, number]; target: [number, number, number] } {
+function viewFor(scene: SceneId, view: CameraView, h: number, dyn?: DynamicScene, focusId?: string): { pos: [number, number, number]; target: [number, number, number] } {
+  if (scene === "dynamic" && dyn) {
+    const obj = focusId ? dyn.objects.find((o) => o.id === focusId) : undefined;
+    if (obj) {
+      const d = Math.max(5.5, obj.radius * 1.85);
+      return { pos: [d * 0.35, obj.centerY + d * 0.28, d], target: [0, obj.centerY, 0] };
+    }
+    return { pos: [0, 8, 26], target: [0, 2.5, 0] };
+  }
   if (scene === "gates") return { pos: [2.5, 4.5, 15], target: [2.2, 2.2, 0] };
   if (scene === "hole") return { pos: [0, 5, 30], target: [0, 3, 0] };
   if (scene === "orbs") return { pos: [0, 1.7, 6], target: [0, 1.2, 0] };
@@ -403,27 +416,28 @@ function viewFor(scene: SceneId, view: CameraView, h: number): { pos: [number, n
   }
 }
 
-function CameraRig({ scene, view, nonce, topY }: { scene: SceneId; view: CameraView; nonce: number; topY: number }) {
+function CameraRig({ scene, view, nonce, topY, dyn, focusId }: { scene: SceneId; view: CameraView; nonce: number; topY: number; dyn?: DynamicScene | undefined; focusId?: string | undefined }) {
   const { camera, size } = useThree();
   const controls = useRef<OrbitControlsImpl | null>(null);
   useEffect(() => {
-    const v = viewFor(scene, view, Math.max(6, topY - TREE_GROUND));
+    const v = viewFor(scene, view, Math.max(6, topY - TREE_GROUND), dyn, focusId);
     // Wide object rows need more distance on a narrow (portrait phone) screen.
     const k = scene === "tree" ? 1 : Math.max(1, 1.25 / (size.width / Math.max(1, size.height)));
     camera.position.set(v.target[0] + (v.pos[0] - v.target[0]) * k, v.target[1] + (v.pos[1] - v.target[1]) * k, v.target[2] + (v.pos[2] - v.target[2]) * k);
     controls.current?.target.set(...v.target);
     controls.current?.update();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, view, nonce]);
+  }, [scene, view, nonce, focusId]);
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={160} target={[0, 10, 0]} />;
 }
 
-export function StudioViewport({ scene, mesh, look, wireframe, showGround, view, viewNonce, bottomInset, hidden }: Props) {
+export function StudioViewport({ scene, mesh, look, dynamicScene, focusId, hasTree = true, wireframe, showGround, view, viewNonce, bottomInset, hidden }: Props) {
   const [ready, setReady] = useState(false);
   const c = look.colors;
   const isTree = scene === "tree";
+  const useDynamic = !!dynamicScene?.isDynamic;
   // The tree workbench keeps its warm dusk light; the game objects are shown in the game's own palette.
-  const bg = isTree ? "#33202f" : c.fog;
+  const bg = isTree ? "#33202f" : useDynamic ? dynamicScene.bg : c.fog;
   const sunEl = (look["sun.maxEl"]! * Math.PI) / 180;
   return (
     <div className="absolute inset-0" data-scene-ready={ready ? "true" : undefined}>
@@ -469,10 +483,17 @@ export function StudioViewport({ scene, mesh, look, wireframe, showGround, view,
         </Environment>
 
         {isTree && <TreeBody mesh={mesh} wireframe={wireframe} tint="#e0bea0" />}
-        {scene === "gates" && <Landmarks look={look} hidden={hidden} />}
-        {scene === "hole" && <BlackHole look={look} hidden={hidden} />}
-        {scene === "orbs" && <Orbs look={look} hidden={hidden} />}
-        {scene === "world" && (
+        {scene === "dynamic" && dynamicScene && <DynamicSceneView scene={dynamicScene} focusId={focusId} wireframe={wireframe} />}
+        {!useDynamic && scene === "gates" && <Landmarks look={look} hidden={hidden} />}
+        {!useDynamic && scene === "hole" && <BlackHole look={look} hidden={hidden} />}
+        {!useDynamic && scene === "orbs" && <Orbs look={look} hidden={hidden} />}
+        {scene === "world" && useDynamic && dynamicScene && (
+          <>
+            {hasTree && <TreeBody mesh={mesh} wireframe={wireframe} tint={c.trunk} position={[-12, 0, -6]} />}
+            <DynamicSceneView scene={dynamicScene} wireframe={wireframe} />
+          </>
+        )}
+        {scene === "world" && !useDynamic && (
           <>
             <TreeBody mesh={mesh} wireframe={wireframe} tint={c.trunk} position={[-9, 0, -4]} />
             <Landmarks look={look} offset={[3, 0, 2]} hidden={hidden} />
@@ -481,10 +502,10 @@ export function StudioViewport({ scene, mesh, look, wireframe, showGround, view,
           </>
         )}
 
-        {showGround && <Ground tint={isTree ? "#8a6a5c" : c.ground} />}
+        {showGround && <Ground tint={isTree ? "#8a6a5c" : useDynamic ? dynamicScene.groundColor : c.ground} />}
         {showGround && <ContactShadows position={[0, 0.01, 0]} opacity={0.55} scale={40} blur={2.4} far={6} />}
         <ViewInset inset={bottomInset} />
-        <CameraRig scene={scene} view={view} nonce={viewNonce} topY={mesh.topY} />
+        <CameraRig scene={scene} view={view} nonce={viewNonce} topY={mesh.topY} dyn={dynamicScene} focusId={focusId} />
       </Canvas>
     </div>
   );
