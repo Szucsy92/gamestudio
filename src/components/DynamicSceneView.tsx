@@ -113,8 +113,10 @@ function PrimView({ prim, wireframe, tex }: { prim: DynamicPrim; wireframe: bool
         </sprite>
       )}
       {prim.shape === "ring_spheres" &&
-        Array.from({ length: Math.max(1, Math.round(prim.args[0] ?? 8)) }, (_, i, arr) => {
-          const a = (i / arr.length) * Math.PI * 2;
+        (() => {
+          const count = Math.max(1, Math.round(prim.args[0] ?? 8));
+          return Array.from({ length: count }, (_, i) => {
+          const a = (i / count) * Math.PI * 2;
           const R = prim.args[1] ?? 2;
           const r = Math.max(0.05, prim.args[2] ?? 0.25);
           const col = prim.colors?.[i % prim.colors.length] ?? prim.color;
@@ -128,11 +130,14 @@ function PrimView({ prim, wireframe, tex }: { prim: DynamicPrim; wireframe: bool
               <meshStandardMaterial color={col} emissive={col} emissiveIntensity={prim.emissiveIntensity ?? 1} roughness={prim.roughness ?? 0.2} transparent opacity={prim.opacity} wireframe={wireframe} />
             </mesh>
           );
-        })}
+          });
+        })()}
       {prim.shape === "spiral" &&
-        Array.from({ length: Math.max(4, Math.round(prim.args[0] ?? 32)) }, (_, i, arr) => {
+        (() => {
+          const count = Math.max(4, Math.round(prim.args[0] ?? 32));
+          return Array.from({ length: count }, (_, i) => {
           const arm = i % 2;
-          const u = i / arr.length;
+          const u = i / count;
           const R = (prim.args[1] ?? 3.2) * (0.18 + 0.82 * u);
           const turns = prim.args[2] ?? 1.25;
           const size = Math.max(0.1, prim.args[3] ?? 0.4);
@@ -144,7 +149,8 @@ function PrimView({ prim, wireframe, tex }: { prim: DynamicPrim; wireframe: bool
               <spriteMaterial map={tex} color={col} opacity={Math.min(1, prim.opacity)} blending={THREE.AdditiveBlending} depthWrite={false} transparent />
             </sprite>
           );
-        })}
+          });
+        })()}
       {prim.shape === "particles" &&
         particlePts.map((pt, i) => (
           <sprite key={i} position={pt.pos} scale={[pt.s * 2.2, pt.s * 2.2, 1]}>

@@ -407,7 +407,7 @@ export function catalogFor(model: Model): Catalog {
     if (!f) continue;
     const leaf = el.section.split(".").pop()!;
     const owner = el.section.includes(".") ? el.section.split(".").slice(-2, -1)[0] : undefined;
-    const decl = f.decls.find((d) => d.name === leaf && (d.kind === "class" || d.kind === "object") && (!owner || d.owner === owner));
+    const decl = f.decls.find((d) => d.name === leaf && d.kind === "class" && (!owner || d.owner === owner));
     if (!decl) continue;
     const where = `${el.file.split("/").pop()}:${lineOf(f.lx.src, f.toks[decl.tok]!.s)}`;
     const item: RemovalItem = {
