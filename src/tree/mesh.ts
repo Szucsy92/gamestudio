@@ -19,6 +19,8 @@ export interface TreeMesh {
   triangleCount: number;
   topY: number;
   ringSides: number;
+  /** Rings of the trunk grid (the first rows × (ringSides + 1) vertices are the grid, bottom to top). */
+  rows: number;
 }
 
 interface MeshData {
@@ -339,7 +341,7 @@ export function buildTree(p: TreeParams, sp: number, shape: number, opts: BuildO
   const lifelike = opts.lifelike ?? true;
   const shadow = opts.shadow ?? false;
   const ridges = p.rootCount;
-  const n = shadow ? 2 * ridges : lifelike ? Math.max(12, p.radialMult * ridges) : Math.max(12, 2 * ridges);
+  const n = shadow ? 2 * ridges : lifelike ? Math.max(p.radialMin, p.radialMult * ridges) : Math.max(p.radialMin, 2 * ridges);
   const ts = new TreeShape(p, sp, shape, n);
   const loopW = lifelike ? 4 : 3;
 
@@ -372,7 +374,11 @@ export function buildTree(p: TreeParams, sp: number, shape: number, opts: BuildO
     ys.push(ts.topY);
   } else {
     const flareTop = Math.max(p.flareTop, TREE_GROUND + p.rootHMin + p.rootHRand + 0.4);
-    for (const y of [0.5, 0.8, 1.1, 1.25, 1.45, 1.7, 2.05, 2.45, 2.95, 3.55, 4.2, 5.0]) {
+    const flareRows = Math.min(12, Math.max(3, Math.round(p.flareRows)));
+    const keep = new Array<boolean>(12).fill(false);
+    for (let i = 0; i < flareRows; i++) keep[Math.floor((i * 22 + (flareRows - 1)) / (2 * (flareRows - 1)))] = true;
+    for (const [fi, y] of [0.5, 0.8, 1.1, 1.25, 1.45, 1.7, 2.05, 2.45, 2.95, 3.55, 4.2, 5.0].entries()) {
+      if (!keep[fi]) continue;
       const v = opts.soilBottom ? TREE_GROUND + ((y - 0.5) * (flareTop - TREE_GROUND)) / 4.5 : 0.5 + ((y - 0.5) * (flareTop - 0.5)) / 4.5;
       if (v > bottom + 0.05) ys.push(v);
     }
@@ -588,6 +594,7 @@ export function buildTree(p: TreeParams, sp: number, shape: number, opts: BuildO
     triangleCount: merged.idx.length / 3,
     topY: yTop,
     ringSides: n,
+    rows,
   };
 }
 

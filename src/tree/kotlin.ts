@@ -12,14 +12,14 @@ export function ktDouble(v: number): string {
   return /[.eE]/.test(s) ? s : `${s}.0`;
 }
 
+function arrayLine(s: (typeof PARAM_SPECS)[number], vals: number[], indent = "    "): string {
+  const text = vals.map((v) => (s.int ? String(Math.round(v)) : ktDouble(v)));
+  const fn = s.int ? "intArrayOf" : "doubleArrayOf";
+  return `${indent}private val ${s.kt} = ${fn}(${text.join(", ")})`.padEnd(86) + ` // ${s.label}`;
+}
+
 export function kotlinArrays(species: SpeciesParams): string {
-  const lines: string[] = [];
-  for (const s of PARAM_SPECS) {
-    const vals = species.map((p) => (s.int ? String(Math.round(p[s.key])) : ktDouble(p[s.key])));
-    const fn = s.int ? "intArrayOf" : "doubleArrayOf";
-    lines.push(`    private val ${s.kt} = ${fn}(${vals.join(", ")})`.padEnd(86) + ` // ${s.label}`);
-  }
-  return lines.join("\n");
+  return PARAM_SPECS.map((s) => arrayLine(s, species.map((p) => p[s.key]))).join("\n");
 }
 
 export function kotlinTreeSection(species: SpeciesParams, stamp: string): string {
@@ -188,7 +188,7 @@ ${kotlinArrays(species)}
     fun treeBody(lifelike: Boolean, shadow: Boolean = false, variant: Int = 0, shape: Int = 0): MeshData {
         val sp = variant.coerceIn(0, 3) // oak, pine, ancient, birch
         val ridges = TREE_RIDGES[sp]
-        val n = if (shadow) 2 * ridges else if (lifelike) maxOf(12, TREE_RADIAL[sp] * ridges) else maxOf(12, 2 * ridges)
+        val n = if (shadow) 2 * ridges else if (lifelike) maxOf(TREE_MIN_SIDES[sp], TREE_RADIAL[sp] * ridges) else maxOf(TREE_MIN_SIDES[sp], 2 * ridges)
         val ts = TreeShape(sp, shape.coerceIn(0, 15), n)
         val loopW = if (lifelike) 4 else 3
 
@@ -221,7 +221,12 @@ ${kotlinArrays(species)}
             ys += ts.topY
         } else {
             val flareTop = maxOf(TREE_FLARE_TOP[sp], TREE_GROUND + TREE_ROOT_H[sp] + TREE_ROOT_H_RAND[sp] + .4)
-            for (y in doubleArrayOf(.5, .8, 1.1, 1.25, 1.45, 1.7, 2.05, 2.45, 2.95, 3.55, 4.2, 5.0)) {
+            // TREE_FLARE_ROWS of the 12 flare rows stay, spread evenly (the lowest and the highest always).
+            val flareRows = TREE_FLARE_ROWS[sp].coerceIn(3, 12)
+            val keep = BooleanArray(12)
+            for (i in 0 until flareRows) keep[(i * 22 + (flareRows - 1)) / (2 * (flareRows - 1))] = true
+            for ((fi, y) in doubleArrayOf(.5, .8, 1.1, 1.25, 1.45, 1.7, 2.05, 2.45, 2.95, 3.55, 4.2, 5.0).withIndex()) {
+                if (!keep[fi]) continue
                 val v = .5 + (y - .5) * (flareTop - .5) / 4.5
                 if (v > bottom + .05) ys += v
             }
@@ -436,4 +441,37 @@ export function buildMeshesKt(template: string, species: SpeciesParams, stamp: s
   const b = template.indexOf(SECTION_END);
   if (a < 0 || b < 0 || b < a) throw new Error("A Meshes.kt sablonban nem található a fa szakasz.");
   return template.slice(0, a) + kotlinTreeSection(species, stamp) + template.slice(b);
+}
+
+const N_LINE = /^([ \t]*val n = if \(shadow\) 2 \* ridges else if \(lifelike\) )maxOf\(12, ([^)]*)\)( else )maxOf\(12, 2 \* ridges\)$/m;
+const FLARE_FOR = /^([ \t]*)for \(y in doubleArrayOf\((\.5, \.8, 1\.1, 1\.25, 1\.45, 1\.7, 2\.05, 2\.45, 2\.95, 3\.55, 4\.2, 5\.0)\)\) \{$/m;
+const FLARE_TOP_LINE = /^([ \t]*)private val TREE_FLARE_TOP = .*$/m;
+
+/**
+ * Brings the tree section of an older Meshes.kt up to the code above: the lowest side count (a hard-wired 12) and the
+ * flare rows (all 12) become the per-species arrays TREE_MIN_SIDES and TREE_FLARE_ROWS, set to the old behaviour, so the
+ * triangle count of the trees can be tuned. Returns null when there is nothing to do (already upgraded, no tree section)
+ * or the code does not look the way this studio writes it (nothing is touched then).
+ */
+export function upgradeTreeKotlin(src: string): string | null {
+  if (src.includes("TREE_MIN_SIDES") || src.includes("TREE_FLARE_ROWS")) return null;
+  const nLine = N_LINE.exec(src);
+  const flareFor = FLARE_FOR.exec(src);
+  const flareTop = FLARE_TOP_LINE.exec(src);
+  if (!nLine || !flareFor || !flareTop) return null;
+  const spec = (key: string) => PARAM_SPECS.find((s) => s.key === key)!;
+  const arrays = [spec("radialMin"), spec("flareRows")].map((s) => arrayLine(s, [...s.def], flareTop[1]!)).join("\n");
+  const ind = flareFor[1]!;
+  const keep = [
+    `${ind}// TREE_FLARE_ROWS of the 12 flare rows stay, spread evenly (the lowest and the highest always).`,
+    `${ind}val flareRows = TREE_FLARE_ROWS[sp].coerceIn(3, 12)`,
+    `${ind}val keep = BooleanArray(12)`,
+    `${ind}for (i in 0 until flareRows) keep[(i * 22 + (flareRows - 1)) / (2 * (flareRows - 1))] = true`,
+    `${ind}for ((fi, y) in doubleArrayOf(${flareFor[2]}).withIndex()) {`,
+    `${ind}    if (!keep[fi]) continue`,
+  ].join("\n");
+  return src
+    .replace(N_LINE, (_m, a: string, mul: string, b: string) => `${a}maxOf(TREE_MIN_SIDES[sp], ${mul})${b}maxOf(TREE_MIN_SIDES[sp], 2 * ridges)`)
+    .replace(FLARE_FOR, () => keep)
+    .replace(FLARE_TOP_LINE, (m) => `${m}\n${arrays}`);
 }

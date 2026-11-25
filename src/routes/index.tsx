@@ -3,6 +3,7 @@ import { Box, ChevronDown, Download, Eye, FolderUp, GitCompareArrows, Grid3x3, I
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { KtName, ParamGroup } from "@/components/ParamPanel";
 import { ChangesPanel } from "@/components/ChangesPanel";
+import { LodPanel } from "@/components/LodPanel";
 import { ItemAction, RemovalContext, type RemovalApi } from "@/components/removal-context";
 import { RemovalTree } from "@/components/RemovalTree";
 import { StudioViewport, type CameraView } from "@/components/StudioViewport";
@@ -518,6 +519,20 @@ function GameStudio() {
             {() => (
               <>
                 {g.id === "roots" && <Switch on={prop} onClick={() => setProp((p) => !p)} label="Arányos gyökérhossz" hint="A gyökerek hosszával együtt arányosan változik a csatlakozás magassága, szórása, a tő kiszélesedése és a gyökér vastagsága." />}
+                {g.id === "quality" && (
+                  <LodPanel
+                    species={species}
+                    base={baseSpecies}
+                    count={count}
+                    active={active}
+                    soilBottom={tree.soilBottom}
+                    available={tree.available}
+                    onApply={(sp, knobs) => {
+                      setSpecies((prev) => (prev ? (prev.map((x, i) => (i === sp ? { ...x, ...knobs } : x)) as SpeciesParams) : prev));
+                      setNotice("Háromszög-beállítások alkalmazva. A ZIP-be kerülnek.");
+                    }}
+                  />
+                )}
                 {g.id === "base" && tree.soilBottom && <p className="py-2 text-[11px] text-muted-foreground">Ebben a repóban a fa pontosan a talajszinten kezdődik, ezért a vágás mélysége itt nem számít.</p>}
                 <ParamGroup group={g.id} params={params} fileValues={baseSpecies[active]!} onChange={onTreeChange} skip={skipFor(g.id)} ktIndex={active} />
               </>

@@ -31,7 +31,7 @@ export const PARAM_KEYS = [
   "limbLenSlope", "limbLenRand", "limbThick", "limbRiseMin", "limbRiseRange", "limbBend", "limbCurl", "limbHole", "limbRings",
   "forkCount", "forkStart", "forkSpread", "forkLength", "forkThick", "forkAngle", "forkRise",
   "fluting", "swell", "burl",
-  "radialMult", "flareTop",
+  "radialMult", "flareTop", "radialMin", "flareRows",
 ] as const;
 export type ParamKey = (typeof PARAM_KEYS)[number];
 export type TreeParams = Record<ParamKey, number>;
@@ -101,6 +101,8 @@ export const PARAM_SPECS: readonly ParamSpec[] = [
   // ---- Felbontás
   { key: "radialMult", kt: "TREE_RADIAL", label: "Körbeosztás (gyökerenként)", hint: "Oldalak száma = max(12, ez × gyökerek)", group: "quality", min: 2, max: 6, step: 1, int: true, def: all(3) },
   { key: "flareTop", kt: "TREE_FLARE_TOP", label: "Sűrű gyűrűk magassága", hint: "Eddig a magasságig sűrű a rács a tőnél", group: "quality", min: 2, max: 12, step: 0.1, unit: "m", def: all(5.0) },
+  { key: "radialMin", kt: "TREE_MIN_SIDES", label: "Legkevesebb oldal", hint: "A törzs körbeosztásának alsó határa. Háromszögszám ≈ oldalak × sorok × 2: kevesebb oldal = kevesebb háromszög", group: "quality", min: 6, max: 24, step: 1, int: true, unit: "db", def: all(12) },
+  { key: "flareRows", kt: "TREE_FLARE_ROWS", label: "Törzstő sorai", hint: "Hány gyűrűsor építi a gyökér-kiszélesedést (12 = az eredeti). A sorok egyenletesen maradnak meg, az alsó és a felső mindig", group: "quality", min: 3, max: 12, step: 1, int: true, unit: "db", def: all(12) },
 ];
 
 export const GROUPS: { id: GroupId; label: string }[] = [

@@ -29,3 +29,9 @@
 - [ ] Újra (redo) a visszavonás után
 - [x] Diff/patch/ZIP a törlésekkel; 3D előnézet elrejti a törölt részeket
 - [ ] Ellenőrzés: valódi Gradle fordítás a törlések után a teljes repón (a tesztek a mellékelt src/kotlin részhalmazon futnak)
+
+## Teljesítmény
+- [x] Fa háromszögszáma a stúdióban: Felbontás csoport – háromszög / fa, cél-csúszka, „Optimalizálás” (fajonként vagy mind)
+- [x] Új fa-beállítások: legkevesebb oldal (TREE_MIN_SIDES), törzstő sorai (TREE_FLARE_ROWS); régi Meshes.kt betöltéskor automatikusan megkapja
+- [ ] Ellenőrzés a játékban: kép és képkockaidő a felezett fákkal (Medium/High minőség)
+

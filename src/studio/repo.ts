@@ -9,6 +9,7 @@ import { buildPatch, changeList, countDirs, fileDiffs, folderTree, treeText, typ
 import type { Model } from "./catalog";
 import { buildTree, MAX_VERTICES } from "@/tree/mesh";
 import { toObj } from "@/tree/obj";
+import { upgradeTreeKotlin } from "@/tree/kotlin";
 import { PARAM_SPECS, SPECIES, type SpeciesParams } from "@/tree/params";
 
 export interface RepoData {
@@ -20,6 +21,8 @@ export interface RepoData {
   size: number;
   source: "builtin" | "upload";
   loadedAt: string;
+  /** Files whose code the studio brought up to date when loading (e.g. the tree section of Meshes.kt got its triangle-count arrays). */
+  upgraded?: string[];
 }
 
 /** Folder the studio adds next to the repo in its export; ignored when such a ZIP is loaded back. */
@@ -50,10 +53,20 @@ export async function parseRepoZip(data: ArrayBuffer, name: string, source: Repo
       if (rel.endsWith(".kt")) texts.set(rel, dec.decode(bytes));
     }),
   );
+  // An older tree section gets the arrays that make the triangle count tunable (same behaviour until they are changed).
+  const upgraded: string[] = [];
+  for (const [rel, text] of texts) {
+    if (!rel.endsWith("/Meshes.kt")) continue;
+    const up = upgradeTreeKotlin(text);
+    if (up === null) continue;
+    texts.set(rel, up);
+    files.set(rel, new TextEncoder().encode(up));
+    upgraded.push(rel);
+  }
   if (![...texts.keys()].some((p) => p.endsWith("/Meshes.kt") || p.endsWith("/Simulation.kt") || p.endsWith("/GameRenderer.kt"))) {
     throw new Error("Ebben a ZIP-ben nincs a játék Kotlin kódja (Meshes.kt, GameRenderer.kt, Simulation.kt).");
   }
-  return { name, root, files, texts, size: data.byteLength, source, loadedAt };
+  return { name, root, files, texts, size: data.byteLength, source, loadedAt, ...(upgraded.length ? { upgraded } : {}) };
 }
 
 // ---- IndexedDB: one record, the raw ZIP of the current base repo.
@@ -183,7 +196,7 @@ export function patchHeader(repo: RepoData, values: number, files: number, rever
     ];
   return [
     `GameStudio patch – ${stamp()}`,
-    `Alap: ${repo.name}`,
+    `Alap: ${repo.name}${repo.upgraded?.length ? " (a fa-szakasz frissítve: TREE_MIN_SIDES, TREE_FLARE_ROWS – a patch a frissített Meshes.kt-ra készült)" : ""}`,
     `${values} módosított érték${removed.length ? `, ${removed.length} törlés` : ""}, ${files} fájlban.`,
     ...del,
     `Alkalmazás a repó gyökérmappájában: git apply <fájl>.patch   vagy   patch -p1 < <fájl>.patch`,
@@ -225,7 +238,7 @@ export async function buildRepoZip(input: ExportInput): Promise<Blob> {
     "CHANGES.md",
     `# GameStudio export (${stamp()})
 
-Alap: **${repo.name}**. A \`${rootName}/\` mappa a teljes repo; csak az alábbi ${removed.length ? "számok és törlések" : "számok"} változtak, minden más bájtra azonos.
+Alap: **${repo.name}**.${repo.upgraded?.length ? ` A betöltéskor a fa-kód frissült (${repo.upgraded.join(", ")}): új tömbök a háromszögszám állításához, az alapértékek az eredeti viselkedést adják.` : ""} A \`${rootName}/\` mappa a teljes repo; csak az alábbi ${removed.length ? "számok és törlések" : "számok"} változtak, minden más bájtra azonos.
 ${changes.length} módosított érték${removed.length ? `, ${removed.length} törlés` : ""}, ${diffs.length} fájlban, ${countDirs(tree)} mappában.
 ${removed.length ? `\n## Törölve (minden hivatkozásával együtt)\n\n${removed.map((r) => `- ${r}`).join("\n")}\n` : ""}
 ${warnings.length ? `\n> **Figyelem:**\n${warnings.map((w) => `> - ${w}`).join("\n")}\n` : ""}
