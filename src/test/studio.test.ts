@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { autoRange, formatLiteral, patchSource, scanKotlin } from "@/studio/scan";
 import { patternRegex, resolveCurated, type CuratedDef, type FileIndex } from "@/studio/curated";
 import { buildModel, codeRef, treeEdits } from "@/studio/catalog";
+import { extractDynamicScene } from "@/studio/scene";
 import { applyPatch, buildPatch, editsFromPatched, fileDiffs, folderTree, restorePatch, treeText } from "@/studio/diff";
 import { fileDefaults, scaleRootJoint } from "@/tree/params";
 
@@ -215,5 +216,71 @@ describe("restore patch", () => {
     const changed = new Map([["app/sim/Simulation.kt", SIM.replace("var counter = 5", "var counter2 = 5")]]);
     const back = applyPatch(restorePatch(texts, changed), [...texts.keys()], (p) => changed.get(p));
     expect(back.get("app/sim/Simulation.kt")).toBe(SIM);
+  });
+});
+
+describe("dynamic visual objects", () => {
+  const VISUALS = `
+object Visuals {
+    object OrbSphere {
+        const val ON = true
+        const val SIZE = .42
+        const val HEIGHT = 1.15
+        const val FLOW = true
+    }
+    object GateRing {
+        const val ON = true
+        const val RADIUS = 4.5
+        const val GAP = 0.05
+        const val TORUS_R = 2.4
+        const val TORUS_TUBE = .056
+    }
+    object BlackHole {
+        const val BODY = true
+        const val VEILS = true
+        val RING_SIZE = doubleArrayOf(10.0, 13.0, 17.0)
+        val RING_ALPHA = floatArrayOf(.16f, .11f, .07f)
+    }
+}
+`;
+  const EFFECTS = `
+class EffectsModel {
+    companion object {
+        const val GLITCH_PEAK = 2.6
+        const val GLITCH_FALL = 2.2
+    }
+}
+`;
+  const model = buildModel(
+    new Map([
+      ["app/gl/Visuals.kt", VISUALS],
+      ["app/gl/Effects.kt", EFFECTS],
+      ["app/sim/Simulation.kt", SIM],
+    ]),
+  );
+
+  it("discovers Visuals.* objects and keeps EffectsModel in graphics", () => {
+    const ids = model.elements.map((e) => e.id);
+    expect(ids).toContain("obj:Visuals.OrbSphere");
+    expect(ids).toContain("obj:Visuals.GateRing");
+    expect(ids).toContain("obj:Visuals.BlackHole");
+    expect(ids).not.toContain("obj:EffectsModel");
+    const hole = model.elements.find((e) => e.id === "obj:Visuals.BlackHole")!;
+    const labels = hole.groups[0]!.rows.map((r) => r.label);
+    expect(labels).toContain("Gyűrű mérete #1");
+    expect(labels).toContain("Gyűrű mérete #2");
+    expect(labels).toContain("Gyűrű mérete #3");
+  });
+
+  it("uses GateRing.RADIUS, BlackHole RING_SIZE, and OrbSphere.FLOW in the 3D scene", () => {
+    const scene = extractDynamicScene(model, {});
+    const gate = scene.objects.find((o) => o.id === "obj:Visuals.GateRing")!;
+    expect(gate.radius).toBeCloseTo(4.5 * 2.2, 2);
+    const hole = scene.objects.find((o) => o.id === "obj:Visuals.BlackHole")!;
+    const veilRadii = hole.prims.filter((p) => p.id.includes(":veil")).map((p) => p.args[0]);
+    expect(veilRadii).toEqual([5, 6.5, 8.5]);
+    const orb = scene.objects.find((o) => o.id === "obj:Visuals.OrbSphere")!;
+    expect(orb.prims.some((p) => p.shape === "sphere")).toBe(true);
+    expect(orb.prims.some((p) => p.id.includes(":flow"))).toBe(true);
   });
 });

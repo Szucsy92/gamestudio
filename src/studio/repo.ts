@@ -128,7 +128,7 @@ export async function clearStoredRepo(): Promise<void> {
 /** The stored repo, or the built-in one on first start. */
 export async function openStartRepo(onStatus: (s: string) => void): Promise<RepoData> {
   const stored = await loadStoredRepo();
-  if (stored) {
+  if (stored && (stored.source !== "builtin" || stored.data.byteLength === defaultRepoAsset.size)) {
     onStatus(`${stored.name} betöltése…`);
     try {
       return await parseRepoZip(stored.data, stored.name, stored.source, stored.loadedAt);

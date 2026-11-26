@@ -119,8 +119,9 @@ for (let i = 0; i < 8; i++) LABELS[`odd[${i}]`] = [`Féreglyuk ereklye szín ${i
 
 /** Structural indices and plain state defaults: changing them breaks the game rather than tuning it. */
 const SKIP_DECL = /^(K_\w+|KINDS|SHAPES|XYZ|YXZ|RATE|VOLUME_POLL_NS|SLOTS|vertexCount|eps)$/;
-const SKIP_SECTION = new Set(["UiState", "Settings", "UpdateEvent", "MeshData", "EffectState", "Blip", "MainActivity", "SettingsRepo", "Updater"]);
+const SKIP_SECTION = new Set(["UiState", "Settings", "UpdateEvent", "MeshData", "EffectState", "Blip", "MainActivity", "SettingsRepo", "Updater", "EffectsModel", "FxTuning", "Features", "SkyLights", "Sprites"]);
 const CORE_SINGLETONS = new Set(["Palette", "SkyLight", "Quality", "Shaders", "Meshes", "GameRenderer", "Simulation", "GameEngine", "PostFx", "ShadowMap", "Effects", "GlUtil", "Mat", "GlassState", "PerfStats", "ForestAudio", "Haptics", "TiltSensor", "ForestUi", "Visuals"]);
+const NON_OBJECT_FILE = /^(Shaders|Quality|PostFx|Effects|SkyLight|ShadowMap|Palette|GlUtil|Mat|GlassState|PerfStats|GameRenderer)\.kt$/i;
 
 const COMMON_WORDS: Record<string, string> = {
   ON: "Bekapcsolva",
@@ -150,19 +151,27 @@ const COMMON_WORDS: Record<string, string> = {
   TORUS_R: "Gyűrű sugara",
   TORUS_TUBE: "Gyűrű vastagsága",
   VANISH_TIME: "Eltűnési idő",
+  FLOW: "Belső áramlás",
+  RING_SIZE: "Gyűrű mérete",
+  RING_ALPHA: "Gyűrű átlátszósága",
+  GLITCH_PEAK: "Glitch csúcs",
+  GLITCH_FALL: "Glitch lecsengés",
+  GLITCH_KICK_TIME: "Glitch időtartam",
 };
 
 /** Converts UPPER_SNAKE_CASE or camelCase into a clean readable label. */
 export function humanizeIdent(name: string): string {
   const base = name.split(/[.[]/)[0]!;
-  if (COMMON_WORDS[base]) return COMMON_WORDS[base]!;
+  const idxMatch = /\[(\d+)\]/.exec(name);
+  const suffix = idxMatch ? ` #${Number(idxMatch[1]) + 1}` : "";
+  if (COMMON_WORDS[base]) return `${COMMON_WORDS[base]!}${suffix}`;
   const spaced = base
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
     .trim()
     .toLowerCase();
   if (!spaced) return name;
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return `${spaced.charAt(0).toUpperCase() + spaced.slice(1)}${suffix}`;
 }
 
 export function humanizeObject(section: string): string {
@@ -175,6 +184,7 @@ function isVisualCandidate(path: string, section: string, lits: Literal[]): bool
   const leaf = section.split(".").pop() ?? section;
   if (SKIP_SECTION.has(leaf) || CORE_SINGLETONS.has(section)) return false;
   if (/\/(audio|ui|update|data|input)\//i.test(path)) return false;
+  if (NON_OBJECT_FILE.test(fileName(path))) return false;
   // Nested object inside a container (e.g. Visuals.GateRing, Entities.Ship) is always a first-class visual object.
   if (section.includes(".")) return true;
   // Top-level object/class in a visual/rendering/3D/entity file with >= 2 tunable constants
@@ -372,9 +382,8 @@ export function buildModel(texts: Map<string, string>): Model {
   const dynamicElements: ElementDef[] = dynamicObjects.map((obj) => {
     const name = humanizeObject(obj.section);
     const rows: Row[] = obj.lits.map((l) => {
-      const lab = LABELS[l.decl ?? ""] ?? LABELS[l.declBase ?? ""];
-      const label = lab ? lab[0] : humanizeIdent(l.decl ?? "");
-      return rowFor(l, label, lab?.[1]);
+      const label = humanizeIdent(l.decl ?? "");
+      return rowFor(l, label);
     });
     return {
       id: obj.id,

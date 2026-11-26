@@ -79,6 +79,7 @@ function collectValues(model: Model, edits: Record<string, number>): { bySection
     let m = bySection.get(l.section);
     if (!m) bySection.set(l.section, (m = new Map()));
     if (!m.has(l.declBase)) m.set(l.declBase, v);
+    if (l.decl && l.decl !== l.declBase) m.set(l.decl, v);
     if (!global.has(l.declBase)) global.set(l.declBase, v);
   }
   return { bySection, global };
@@ -152,13 +153,13 @@ function buildObjectPrims(
   })();
 
   // 1. Torus ring object (e.g. GateRing or any torus-based portal/ring)
-  if (m.has("TORUS_R") || m.has("TORUS_TUBE") || usage.shapes.has("torus")) {
-    const gateHalf = global.get("GATE_HALF") ?? num(m, ["TORUS_R", "RADIUS", "SIZE"], 2.4);
+  if (m.has("TORUS_R") || m.has("TORUS_TUBE") || (usage.shapes.has("torus") && !/orb|sphere|hole|mist|pollen|light|halo|relic/i.test(sec))) {
+    const ringR = num(m, ["RADIUS"], global.get("GATE_HALF") ?? num(m, ["TORUS_R", "SIZE"], 2.4));
     const torusR = num(m, ["TORUS_R", "RADIUS"], 2.4);
     const tube = num(m, ["TORUS_TUBE", "TUBE"], 0.14);
-    const k = torusR > 0.01 ? gateHalf / torusR : 1;
+    const k = torusR > 0.01 ? ringR / torusR : 1;
     const gap = num(m, ["GAP", "HEIGHT"], 0);
-    const cy = gateHalf + tube * k + gap;
+    const cy = ringR + tube * k + gap;
     const col = ownColor ?? pickColor(["ember", "pursuer", "secret", "lamp"], "#ff4526");
     prims.push({
       id: `${sec}:torus`,
@@ -185,7 +186,7 @@ function buildObjectPrims(
         pos: [0, cy, 0],
         rot: [Math.PI / 2, 0, 0],
         scale: [1, 1, 1],
-        args: [count, gateHalf, glowSize * 0.18],
+        args: [count, ringR, glowSize * 0.18],
         color: col,
         opacity: glowAlpha,
         additive: true,
@@ -193,7 +194,7 @@ function buildObjectPrims(
         visible: glowOn,
       });
     }
-    return { prims, radius: Math.max(3.5, gateHalf * 2.2), centerY: cy };
+    return { prims, radius: Math.max(3.5, ringR * 2.2), centerY: cy };
   }
 
   // 2. Spore spiral + fairy ring / relic-style composite object
@@ -272,21 +273,25 @@ function buildObjectPrims(
       visible: bodyOn,
     });
     [
-      [r * 2.1, c1, 0.36, 0.9],
-      [r * 2.7, c2, 0.28, -0.62],
-      [r * 3.4, c3, 0.2, 0.34],
-    ].forEach(([rad, col, op, sp], idx) => {
+      [r * 2.1, c1, 0.16, 0.9],
+      [r * 2.7, c2, 0.11, -0.62],
+      [r * 3.4, c3, 0.07, 0.34],
+    ].forEach(([defRad, col, defOp, sp], idx) => {
+      const ringSize = m.get(`RING_SIZE[${idx}]`);
+      const ringAlpha = m.get(`RING_ALPHA[${idx}]`);
+      const rad = ringSize !== undefined ? Math.max(0.5, ringSize * 0.5) : (defRad as number);
+      const op = ringAlpha !== undefined ? Math.max(0.02, Math.min(1, ringAlpha * 2.2)) : (defOp as number) * 2.2;
       prims.push({
         id: `${sec}:veil${idx}`,
         shape: "torus",
         pos: [0, h, 0],
         rot: [1.15 + idx * 0.08, 0, 0.32 - idx * 0.06],
         scale: [1, 1, 1],
-        args: [rad as number, 0.08 + idx * 0.03],
+        args: [rad, 0.08 + idx * 0.03],
         color: col as string,
         emissive: col as string,
         emissiveIntensity: 1.4,
-        opacity: op as number,
+        opacity: op,
         additive: true,
         anim: { spinZ: sp as number, bobAmp: bob, bobSpeed: 0.6 },
         visible: veilsOn,
@@ -392,6 +397,7 @@ function buildObjectPrims(
     const alpha = num(m, ["ALPHA"], 0.55);
     const emis = num(m, ["EMISSIVE"], 1.2);
     const rough = num(m, ["ROUGH"], 0.2);
+    const flow = flag(m, "FLOW", false);
     const multi = /orb/i.test(sec) && (pal.single.has("freezer") || pal.single.has("ghost"));
     const cols = multi
       ? [pickColor(["freezer"], "#2b6cff"), pickColor(["ghost"], "#2ee88a"), pickColor(["shock"], "#b04dff")]
@@ -413,6 +419,23 @@ function buildObjectPrims(
         anim: { bobAmp: num(m, ["BOB"], 0.05), bobSpeed: num(m, ["SPEED", "SPIN"], 1.0) },
         visible: on,
       });
+      if (flow) {
+        prims.push({
+          id: `${sec}:flow${i}`,
+          shape: "torus",
+          pos: [x, h, 0],
+          rot: [0.9 + i * 0.35, 0.4, 0.25],
+          scale: [1, 1, 1],
+          args: [r * 0.62, Math.max(0.02, r * 0.14)],
+          color: col,
+          emissive: col,
+          emissiveIntensity: emis,
+          opacity: Math.min(1, alpha * 1.1),
+          additive: true,
+          anim: { spinY: 1.1 + i * 0.2, spinZ: 0.7, bobAmp: num(m, ["BOB"], 0.05), bobSpeed: num(m, ["SPEED", "SPIN"], 1.0) },
+          visible: on,
+        });
+      }
     });
     return { prims, radius: Math.max(3, r * 6), centerY: h };
   }
