@@ -33,8 +33,8 @@ const FALLBACK: Record<string, number> = {
 };
 
 const PALETTE_FALLBACK: Record<string, number> = {
-  fog: 0x0b1424, moon: 0x829ff0, lamp: 0xffe6b8, green: 0x24d975, purple: 0x883cdb, lavender: 0xc8b8e0, trunk: 0xb8a58c, ground: 0x9aa896, crown: 0x17251c,
-  rock: 0x3a4048, ember: 0xff2a1a, pursuer: 0xff1e10, freezer: 0x2b6cff, ghost: 0x2ee88a, shock: 0xb04dff, secret: 0x7fe8d8, sunDusk: 0xff5428, sunDay: 0xffffd0,
+  fog: 0x081030, moon: 0x7a92ff, lamp: 0xffe6b8, green: 0x24d975, purple: 0x883cdb, lavender: 0xc8b8e0, trunk: 0xb8a58c, ground: 0x9aa896, crown: 0x17251c,
+  rock: 0x3a4048, ember: 0xff2a1a, pursuer: 0xff1e10, freezer: 0x2b6cff, ghost: 0x2ee88a, shock: 0xb04dff, secret: 0x7fe8d8, sunDusk: 0xff3a78, sunDay: 0xffeeb0,
 };
 
 export function lookFrom(model: Model, edits: Record<string, number>): Look {

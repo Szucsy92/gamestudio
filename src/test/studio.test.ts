@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { autoRange, formatLiteral, patchSource, scanKotlin } from "@/studio/scan";
 import { patternRegex, resolveCurated, type CuratedDef, type FileIndex } from "@/studio/curated";
 import { buildModel, codeRef, treeEdits } from "@/studio/catalog";
+import { lookFrom } from "@/studio/look";
 import { extractDynamicScene } from "@/studio/scene";
 import { applyPatch, buildPatch, editsFromPatched, fileDiffs, folderTree, restorePatch, treeText } from "@/studio/diff";
 import { fileDefaults, scaleRootJoint } from "@/tree/params";
@@ -282,5 +283,23 @@ class EffectsModel {
     const orb = scene.objects.find((o) => o.id === "obj:Visuals.OrbSphere")!;
     expect(orb.prims.some((p) => p.shape === "sphere")).toBe(true);
     expect(orb.prims.some((p) => p.id.includes(":flow"))).toBe(true);
+  });
+
+  it("maps GateRing lens constants, EffectsModel glitch timings, and updated Palette colors", () => {
+    const m = buildModel(
+      new Map([
+        ["app/gl/Visuals.kt", "object Visuals {\n  object GateRing {\n    const val LENS = true\n    const val LENS_MAGNIFY = .45\n    const val LENS_FADE_NEAR = 6.0\n  }\n}\n"],
+        ["app/gl/Effects.kt", "class EffectsModel {\n  private companion object {\n    const val GLITCH_PEAK = 1.8\n    const val GLITCH_KICK_TIME = .24\n  }\n}\n"],
+        ["app/gl/Palette.kt", "object Palette {\n  val fog = lin(0x081030); val moon = lin(0x7a92ff)\n  val sunDay = lin(0xffeeb0); val sunDusk = lin(0xff3a78)\n}\n"],
+      ]),
+    );
+    const gateLabels = m.elements.find((e) => e.id === "obj:Visuals.GateRing")!.groups.flatMap((g) => g.rows).map((r) => r.label);
+    expect(gateLabels).toContain("Lencse nagyítás");
+    expect(gateLabels).toContain("Lencse közeli elhalványulás");
+    const look = lookFrom(m, {});
+    expect(look.colors.fog).toBe("#081030");
+    expect(look.colors.moon).toBe("#7a92ff");
+    expect(look.colors.sunDay).toBe("#ffeeb0");
+    expect(look.colors.sunDusk).toBe("#ff3a78");
   });
 });
