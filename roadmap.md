@@ -35,3 +35,11 @@
 - [x] Új fa-beállítások: legkevesebb oldal (TREE_MIN_SIDES), törzstő sorai (TREE_FLARE_ROWS); régi Meshes.kt betöltéskor automatikusan megkapja
 - [ ] Ellenőrzés a játékban: kép és képkockaidő a felezett fákkal (Medium/High minőség)
 
+## Natív app (Android, Kotlin + Compose)
+- [x] Natív projekt (`android/`), nincs WebView/Capacitor
+- [x] APK építése GitHub Actionnel (teszt → aláírt APK → kiadás), aláírókulcs-készítő munkafolyamat
+- [x] OTA frissítés felugró ablakkal (GitHub Releases), kézi keresés
+- [x] Egy teljes képernyős app, átlátszó állapot- és navigációs sáv
+- [ ] Első CI-futás ellenőrzése (a natív kódot még nem fordította le senki)
+- [ ] Motor átvitele: számkereső + repo ZIP + csúszkák → elemző/törlő → fa-háló → 3D nézet (lásd `android/README.md`)
+

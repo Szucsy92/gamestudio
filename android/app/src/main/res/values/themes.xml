@@ -1,0 +1,9 @@
+<resources>
+    <!-- Átlátszó állapot- és navigációs sáv: az app tartalma teljes képernyős -->
+    <style name="Theme.GameStudio" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/studio_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
