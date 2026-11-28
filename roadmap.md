@@ -41,5 +41,8 @@
 - [x] OTA frissítés felugró ablakkal (GitHub Releases), kézi keresés
 - [x] Egy teljes képernyős app, átlátszó állapot- és navigációs sáv
 - [ ] Első CI-futás ellenőrzése (a natív kódot még nem fordította le senki)
-- [ ] Motor átvitele: számkereső + repo ZIP + csúszkák → elemző/törlő → fa-háló → 3D nézet (lásd `android/README.md`)
+- [x] Motor 1. lépés: számkereső, katalógus (elemek/csoportok/sorok), repo ZIP, csúszkák, Változások, módosított ZIP mentése; tesztek a TS kimenetével (golden)
+- [ ] Motor 2. lépés: fa-háló, fa-szerkesztő, háromszög-optimalizáló
+- [ ] Motor 3. lépés: 3D nézet (OpenGL ES) és jelenetek
+- [ ] Motor 4. lépés: elemző/törlőmotor, törlő gombok, visszavonás
 

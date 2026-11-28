@@ -1,10 +1,13 @@
 package hu.gamestudio.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +20,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,26 +46,40 @@ import hu.gamestudio.app.UpdateCheck
 import hu.gamestudio.app.UpdateStatus
 import hu.gamestudio.app.domain.AppRelease
 
-private enum class Panel(val label: String) { STUDIO("Stúdió"), UPDATE("Frissítés") }
-
 /**
- * Egyetlen, teljes képernyős felület: a 3D nézet kitölti a képernyőt (a rendszersávok alatt is), minden vezérlő az alsó
- * munkaasztalon (dock + felfelé nyíló fiók) van. Az új verzió felugró ablakban jelenik meg.
+ * Egyetlen, teljes képernyős felület: a 3D nézet helye kitölti a képernyőt (a rendszersávok alatt is), minden vezérlő az
+ * alsó munkaasztalon (dock + felfelé nyíló fiók) van. Az új verzió felugró ablakban jelenik meg.
  */
 @Composable
 fun StudioScreen(graph: AppGraph) {
-    var open by remember { mutableStateOf<Panel?>(null) }
+    val store = graph.studio
+    val repo by store.repo.collectAsState()
+    val model by store.model.collectAsState()
+    val busy by store.busy.collectAsState()
+    val error by store.error.collectAsState()
+    val notice by store.notice.collectAsState()
+    var open by remember { mutableStateOf<String?>(null) }
     val avail by graph.availableUpdate.collectAsState()
     val dismissed by graph.updateDismissed.collectAsState()
     val status by graph.updateStatus.collectAsState()
     val percent by graph.updatePercent.collectAsState()
+
+    LaunchedEffect(Unit) { store.restore() }
+    // Repó nélkül a fiók magától a „Repó” lapra nyílik: innen indul a munka.
+    LaunchedEffect(repo, busy) { if (repo == null && busy == null && open == null) open = "repo" }
     BackHandler(enabled = open != null) { open = null }
 
     Box(Modifier.fillMaxSize().background(Palette.bg)) {
         Viewport(Modifier.fillMaxSize())
         Column(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(16.dp)) {
             Text("GameStudio", color = Palette.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Text("natív változat · ${graph.updater.installedVersionName()}", color = Palette.muted, fontSize = 12.sp)
+            Text(
+                repo?.let { "${it.name} · ${model?.lits?.size ?: 0} szám" } ?: "natív változat · ${graph.updater.installedVersionName()}",
+                color = Palette.muted, fontSize = 12.sp,
+            )
+            busy?.let { Text(it, color = Palette.accent, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+            error?.let { Text(it, color = Palette.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp).clickable { store.clearMessages() }) }
+            notice?.let { Text(it, color = Palette.text, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp).clickable { store.clearMessages() }) }
         }
         Workbench(open, { open = if (open == it) null else it }, graph, Modifier.align(Alignment.BottomCenter))
         val release = avail
@@ -71,7 +89,7 @@ fun StudioScreen(graph: AppGraph) {
     }
 }
 
-/** A 3D nézet helye: a teljes képernyőt kitölti; a motor átvitele a következő lépés (lásd android/README.md). */
+/** A 3D nézet helye: a teljes képernyőt kitölti; a jelenet átvitele a következő lépés (lásd android/README.md). */
 @Composable
 private fun Viewport(modifier: Modifier) {
     Canvas(modifier) {
@@ -85,25 +103,42 @@ private fun Viewport(modifier: Modifier) {
 }
 
 @Composable
-private fun Workbench(open: Panel?, onSelect: (Panel) -> Unit, graph: AppGraph, modifier: Modifier) {
+private fun Workbench(open: String?, onSelect: (String) -> Unit, graph: AppGraph, modifier: Modifier) {
+    val store = graph.studio
+    val model by store.model.collectAsState()
+    val edits by store.edits.collectAsState()
     val shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val maxH = (LocalConfiguration.current.screenHeightDp * 0.55f).dp
     Column(modifier.fillMaxWidth().clip(shape).background(Palette.panel).border(1.dp, Palette.border, shape).navigationBarsPadding()) {
         if (open != null) {
-            Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
-                when (open) {
-                    Panel.STUDIO -> StudioPanel()
-                    Panel.UPDATE -> UpdatePanel(graph)
+            Column(Modifier.fillMaxWidth().heightIn(max = maxH)) {
+                when {
+                    open == "repo" -> RepoPanel(graph)
+                    open == "update" -> UpdatePanel(graph)
+                    open == "changes" -> ChangesPanel(graph)
+                    open.startsWith("el:") -> {
+                        val el = model?.elements?.firstOrNull { it.id == open.removePrefix("el:") }
+                        if (el != null && model != null) ElementPanel(model!!, el, edits, store) else Text("Nincs ilyen elem.", color = Palette.muted, modifier = Modifier.padding(20.dp))
+                    }
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (p in Panel.values()) DockChip(p.label, selected = open == p, onClick = { onSelect(p) })
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DockChip("Repó", selected = open == "repo", onClick = { onSelect("repo") })
+            model?.elements?.forEach { el ->
+                DockChip(el.short, selected = open == "el:${el.id}", onClick = { onSelect("el:${el.id}") })
+            }
+            if (model != null) {
+                val n = edits.size
+                DockChip(if (n > 0) "Változások $n" else "Változások", selected = open == "changes", onClick = { onSelect("changes") })
+            }
+            DockChip("Frissítés", selected = open == "update", onClick = { onSelect("update") })
         }
     }
 }
 
 @Composable
-private fun DockChip(text: String, selected: Boolean, onClick: () -> Unit) {
+internal fun DockChip(text: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Box(
         Modifier.heightIn(min = 44.dp).clip(shape)
@@ -111,44 +146,60 @@ private fun DockChip(text: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = if (selected) Palette.bg else Palette.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(text, color = if (selected) Palette.bg else Palette.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
 @Composable
-private fun StudioPanel() {
-    Text("Natív GameStudio", color = Palette.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-    Text(
-        "A stúdió motorja (Kotlin-elemző, törlés, fa-háló) és a 3D nézet átvitele folyamatban van. Ez a kiadás a natív alapot adja: " +
-            "teljes képernyős felület, átlátszó rendszersávok, GitHub Actions építés és frissítés felugró ablakkal.",
-        color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp),
-    )
+private fun RepoPanel(graph: AppGraph) {
+    val store = graph.studio
+    val repo by store.repo.collectAsState()
+    val model by store.model.collectAsState()
+    val edits by store.edits.collectAsState()
+    val busy by store.busy.collectAsState()
+    val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) store.openRepo(uri) }
+    val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri -> if (uri != null) store.export(uri) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Text("Repó", color = Palette.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        val r = repo
+        if (r == null) {
+            Text("Nyisd meg a játék repóját ZIP-ként (pl. a GitHubról letöltött woodland-weave-run-main.zip). A stúdió megkeresi a Kotlin kódban a hangolható számokat.", color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        } else {
+            Text("${r.name} · ${model?.files?.size ?: 0} Kotlin fájl · ${model?.lits?.size ?: 0} szám · ${edits.size} módosított érték", color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        }
+        Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(if (r == null) "Repó megnyitása (ZIP)" else "Másik repó megnyitása", enabled = busy == null, outline = r != null, onClick = { openLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")) })
+            if (r != null) ActionButton("Módosított ZIP mentése", enabled = busy == null, onClick = { saveLauncher.launch("${r.name}-studio.zip") })
+        }
+    }
 }
 
 @Composable
-private fun UpdatePanel(graph: AppGraph) {
+internal fun UpdatePanel(graph: AppGraph) {
     val check by graph.updateCheck.collectAsState()
     val avail by graph.availableUpdate.collectAsState()
     val status by graph.updateStatus.collectAsState()
     val percent by graph.updatePercent.collectAsState()
     val downloading = status == UpdateStatus.DOWNLOADING
-    Text("Frissítés", color = Palette.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-    Text("Telepített verzió: ${graph.updater.installedVersionName()}", color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-    val line = when {
-        downloading -> "Letöltés…${percent?.let { " $it%" } ?: ""}"
-        status == UpdateStatus.PERMISSION -> "Engedélyezd a telepítést a GameStudio számára, majd koppints újra a Letöltésre."
-        avail != null -> "Új verzió érhető el: ${avail?.version}"
-        check == UpdateCheck.CHECKING -> "Keresés…"
-        check == UpdateCheck.LATEST -> "A legfrissebb verziót használod."
-        check == UpdateCheck.ERROR -> "A frissítés keresése nem sikerült."
-        else -> "Az app induláskor és előtérbe lépéskor magától keres új verziót."
-    }
-    Text(line, color = if (check == UpdateCheck.ERROR) Palette.danger else Palette.text, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-    Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (avail != null && check != UpdateCheck.CHECKING) {
-            ActionButton(if (downloading) "Letöltés…${percent?.let { " $it%" } ?: ""}" else "Letöltés", enabled = !downloading, onClick = { graph.updateDismissed.value = true; graph.startUpdate() })
-        } else {
-            ActionButton("Keresés", outline = true, enabled = check != UpdateCheck.CHECKING, onClick = { graph.checkForUpdate(true) })
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Text("Frissítés", color = Palette.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("Telepített verzió: ${graph.updater.installedVersionName()}", color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        val line = when {
+            downloading -> "Letöltés…${percent?.let { " $it%" } ?: ""}"
+            status == UpdateStatus.PERMISSION -> "Engedélyezd a telepítést a GameStudio számára, majd koppints újra a Letöltésre."
+            avail != null -> "Új verzió érhető el: ${avail?.version}"
+            check == UpdateCheck.CHECKING -> "Keresés…"
+            check == UpdateCheck.LATEST -> "A legfrissebb verziót használod."
+            check == UpdateCheck.ERROR -> "A frissítés keresése nem sikerült."
+            else -> "Az app induláskor és előtérbe lépéskor magától keres új verziót."
+        }
+        Text(line, color = if (check == UpdateCheck.ERROR) Palette.danger else Palette.text, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (avail != null && check != UpdateCheck.CHECKING) {
+                ActionButton(if (downloading) "Letöltés…${percent?.let { " $it%" } ?: ""}" else "Letöltés", enabled = !downloading, onClick = { graph.updateDismissed.value = true; graph.startUpdate() })
+            } else {
+                ActionButton("Keresés", outline = true, enabled = check != UpdateCheck.CHECKING, onClick = { graph.checkForUpdate(true) })
+            }
         }
     }
 }
@@ -176,7 +227,7 @@ private fun UpdateDialog(release: AppRelease, status: UpdateStatus, percent: Int
 }
 
 @Composable
-private fun ActionButton(text: String, onClick: () -> Unit, enabled: Boolean = true, outline: Boolean = false) {
+internal fun ActionButton(text: String, onClick: () -> Unit, enabled: Boolean = true, outline: Boolean = false) {
     val shape = RoundedCornerShape(12.dp)
     Box(
         Modifier.alpha(if (enabled) 1f else 0.5f).heightIn(min = 44.dp).clip(shape)

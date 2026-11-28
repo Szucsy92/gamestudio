@@ -6,6 +6,7 @@ import hu.gamestudio.app.data.Updater
 import hu.gamestudio.app.domain.AppRelease
 import hu.gamestudio.app.domain.needsUpdate
 import hu.gamestudio.app.domain.validRepository
+import hu.gamestudio.app.studio.StudioStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +23,7 @@ enum class UpdateCheck { IDLE, CHECKING, LATEST, ERROR }
 class AppGraph(app: Application) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     val updater = Updater(app)
+    val studio = StudioStore(app, scope)
 
     val availableUpdate = MutableStateFlow<AppRelease?>(null)
     val updateDismissed = MutableStateFlow(false)

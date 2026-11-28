@@ -31,15 +31,31 @@ android/app/src/main/java/hu/gamestudio/app/
 
 A `versionCode` a futás sorszáma (+ az opcionális `VERSION_CODE_OFFSET` változó), a kiadás címkéje ezzel végződik (`build-2026-11-27_1530-42`): az app ebből ismeri fel az újabb verziót.
 
-## Állapot – olvasd el
+## Használat
 
-Ezt a kódot **nem fordítottam le** (nem volt Android SDK / Kotlin-fordító a környezetben); a frissítő és a build-konfiguráció a Private Place bevált megoldásából való. Az első CI-futásnál számíts apró hibákra (import, API-név); a hiba a `tests` vagy az `android` lépés naplójában lesz.
+1. *Repó* → **Repó megnyitása (ZIP)**: válaszd ki a játék repóját (pl. a GitHubról letöltött `woodland-weave-run-main.zip`). A stúdió megkeresi a Kotlin kódban a hangolható számokat (a repó ZIP-je az app saját mappájában marad, újraindítás után folytatódik).
+2. A dock elemei (Kapuk, Fekete lyuk, Power-up, Színek, Fények, Grafika, Játékmenet, Hang, Egyéb, Kód) lenyíló csoportokat és csúszkákat nyitnak; a módosított sor mellett ↺ visszaállít.
+3. *Változások*: a módosított értékek listája egyenkénti és együttes visszavonással, és **Módosított ZIP mentése**: az eredeti repó minden fájlja változatlanul, a módosított Kotlin források átírva, mellé `GameStudio/CHANGES.md`.
 
-A stúdió **motorja és a 3D nézet még nincs átvive**; ez a kiadás a natív alapot adja. A tervezett sorrend (mindegyik tesztekkel, a TS tesztek mintájára):
+## Állapot
 
-1. Kotlin számkereső (`src/studio/scan.ts`) + repo ZIP olvasás/írás + csúszkák (Kód elem)
-2. Elemző és törlőmotor (`src/studio/code/*`, `removals.ts`), Változások és visszavonás
-3. Fa-háló és Kotlin-generátor (`src/tree/*`), háromszög-optimalizáló
-4. 3D nézet (OpenGL ES), a jelenetek (`src/studio/scene.ts`)
+Ezt a kódot **nem fordítottam le** (nem volt Android SDK / Kotlin-fordító a környezetben); az első CI-futásnál számíts apró hibákra (import, API-név): a hiba a `tests` vagy az `android` lépés naplójában lesz.
+
+Átvitt motor (a TS `src/studio` portja, `android/app/src/main/java/hu/gamestudio/app/studio/`):
+
+| Kotlin | TS forrás | Tartalom |
+|---|---|---|
+| `Scan.kt` | `scan.ts` | számkereső (Kotlin + GLSL), kiírás, visszaírás, csúszkatartomány, megjegyzések |
+| `Catalog.kt`, `StudioData.kt` | `catalog.ts`, `curated.ts` | elemek → csoportok → sorok, kurált magyar sorok, kódnevek |
+| `Repo.kt`, `StudioStore.kt` | `repo.ts` | ZIP olvasás/írás, állapot, mentés |
+
+**Ellenőrzés:** `StudioGoldenTest` a TS motor kimenetét (`src/test/resources/golden/*.tsv`, a `src/kotlin` mintafájlokon) veti össze a Kotlin portéval: literálok, katalógus, kiírás és az átírt fájlok tartalma. Ha elbukik, az üzenet az első eltéréseket mutatja. Az adatok újragenerálása: `tsx --tsconfig tsconfig.json android/tools/gen-golden.ts` (és `gen-studio-data.ts` a `StudioData.kt`-hez), ha a TS motor szándékosan változik.
+
+**Még nincs átvive** (ebben a sorrendben):
+
+1. Fa-háló és Kotlin-generátor (`src/tree/*`): a fa-szerkesztő, a háromszög-optimalizáló
+2. 3D nézet (OpenGL ES) és a jelenetek (`src/studio/scene.ts`): a nézet most üres rács
+3. Elemző és törlőmotor (`src/studio/code/*`, `removals.ts`), törlő gombok és visszavonás
+4. Keresés, patch-import, a további TS funkciók
 
 A web változat addig a referencia marad; ha a natív változat eléri a paritást, a `src/` törölhető.

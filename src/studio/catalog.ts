@@ -77,7 +77,7 @@ export const ELEMENTS: { id: ElementId; label: string; short: string; scene: Sce
 ];
 
 /** Hungarian names for the named values of the game. Unknown names show the Kotlin name and its code comment. */
-const LABELS: Record<string, [string, string?]> = {
+export const LABELS: Record<string, [string, string?]> = {
   CELL: ["Erdőrács cellamérete", "m"], RADIUS: ["Látható cellák sugara", "cella"], FOG_END: ["Köd vége", "m"],
   "MAX_HEADING[0]": ["Legnagyobb irányszög", "°"], IMPACT_DURATION: ["Ütközés hossza", "s"], MAX_IMPACTS: ["Ütközések a bukásig", "db"],
   PAUSE_SLOW: ["Megállás lassítása", "s"], RESUME_TIME: ["Folytatás ideje", "s"], EXIT_TIME: ["Kilépés ideje", "s"],
@@ -123,7 +123,7 @@ const SKIP_SECTION = new Set(["UiState", "Settings", "UpdateEvent", "MeshData", 
 const CORE_SINGLETONS = new Set(["Palette", "SkyLight", "Quality", "Shaders", "Meshes", "GameRenderer", "Simulation", "GameEngine", "PostFx", "ShadowMap", "Effects", "GlUtil", "Mat", "GlassState", "PerfStats", "ForestAudio", "Haptics", "TiltSensor", "ForestUi", "Visuals"]);
 const NON_OBJECT_FILE = /^(Shaders|Quality|PostFx|Effects|SkyLight|ShadowMap|Palette|GlUtil|Mat|GlassState|PerfStats|GameRenderer)\.kt$/i;
 
-const COMMON_WORDS: Record<string, string> = {
+export const COMMON_WORDS: Record<string, string> = {
   ON: "Bekapcsolva",
   BODY: "Test",
   VEILS: "Fátylak",

@@ -1,0 +1,459 @@
+E	trees	Fák	Fák	tree	-	-
+E	gates	Kapuk és oszlopok	Kapuk	gates	-	-
+G	0	cur:Kőkapu	Kőkapu	13
+R	cur:gate.half	Nyílás fél szélessége	-	m	num	app/src/main/java/x/sim/Simulation.kt#33	0	7.2	0.01	false	false
+R	cur:gate.postOut	Oszlopok kiállása a nyílástól	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#793	0	0.6	0.001	false	false
+R	cur:gate.postY	Oszlop középmagassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#794	0	6.3	0.01	false	false
+R	cur:gate.postW	Oszlop szélessége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#799	0	1.2	0.001	false	false
+R	cur:gate.postH	Oszlop magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#800	0	13.8	0.01	false	false
+R	cur:gate.postD	Oszlop mélysége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#801	0	1.2	0.001	false	false
+R	cur:gate.lintelY	Gerenda magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#803	0	13.5	0.01	false	false
+R	cur:gate.lintelOver	Gerenda túlnyúlása	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#809	0	2.4	0.001	false	false
+R	cur:gate.lintelH	Gerenda vastagsága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#810	0	1.2	0.001	false	false
+R	cur:gate.lintelD	Gerenda mélysége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#811	0	1.2	0.001	false	false
+R	cur:gate.emis	Kő izzása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#788	0	2.7	0.001	false	false
+R	cur:gate.rough	Kő érdessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#789	0	1.2	0.001	false	false
+R	cur:gate.metal	Kő fémessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#790	0	0.6	0.001	false	false
+G	0	cur:Kapu energiahártyája	Kapu energiahártyája	8
+R	cur:gate.veilA	Hártya fényereje	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#814	0	0.48	0.001	false	false
+R	cur:gate.veilSpeed	Pulzálás sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#815	0	5.1	0.01	false	false
+R	cur:gate.veilAmt	Pulzálás mértéke	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#817	0	0.18	0.00009999999999999999	false	false
+R	cur:gate.veilH	Hártya magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#819	0	13.2	0.01	false	false
+R	cur:gate.veilY	Hártya középmagassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#820	0	6.6	0.01	false	false
+R	cur:gate.glowY	Fényudvar magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#1528	0	9	1	true	false
+R	cur:gate.glowSize	Fényudvar mérete	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#1529,app/src/main/java/x/gl/GameRenderer.kt#1530	0	48	0.1	false	false
+R	cur:gate.glowA	Fényudvar erőssége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#1531	0	0.96	0.001	false	false
+G	0	cur:Monolit (álló kőoszlop)	Monolit (álló kőoszlop)	12
+R	cur:mono.y	Középmagasság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#825	0	6	0.01	false	false
+R	cur:mono.rot	Elforgatás	-	rad	num	app/src/main/java/x/gl/GameRenderer.kt#828	0	1.2	0.001	false	false
+R	cur:mono.w	Szélesség	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#830	0	3	0.01	false	false
+R	cur:mono.h	Magasság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#831	0	13.2	0.01	false	false
+R	cur:mono.d	Vastagság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#832	0	1.05	0.001	false	false
+R	cur:mono.emis	Kő izzása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#821	0	0.24	0.00009999999999999999	false	false
+R	cur:mono.stripY	Fénycsík középmagassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#835	0	6.3	0.01	false	false
+R	cur:mono.stripW	Fénycsík szélessége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#840	0	0.18	0.00009999999999999999	false	false
+R	cur:mono.stripH	Fénycsík hossza	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#841	0	9.6	0.01	false	false
+R	cur:mono.glowSize	Fényköd szélessége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#1488	0	15	0.01	false	false
+R	cur:mono.glowH	Fényköd magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#1489	0	21	0.01	false	false
+R	cur:mono.glowA	Fényköd erőssége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#1491	0	1.05	0.001	false	false
+G	0	cur:Fénygyűrű	Fénygyűrű	6
+R	cur:ring.count	Gömbök száma	-	db	num	app/src/main/java/x/gl/GameRenderer.kt#845,app/src/main/java/x/gl/GameRenderer.kt#846	3	32	1	true	false
+R	cur:ring.spin	Forgás sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#848	0	0.75	0.001	false	false
+R	cur:ring.r	Kör sugara	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#849,app/src/main/java/x/gl/GameRenderer.kt#851	0	7.8	0.01	false	false
+R	cur:ring.y	Magasság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#850	0	0.6	0.001	false	false
+R	cur:ring.w	Gömb szélessége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#855,app/src/main/java/x/gl/GameRenderer.kt#857	0	0.48	0.001	false	false
+R	cur:ring.h	Gömb magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#856	0	0.3	0.001	false	false
+G	0	cur:Lámpás	Lámpás	7
+R	cur:lant.tilt	Oszlop dőlése	-	rad	num	app/src/main/java/x/gl/GameRenderer.kt#864	0	0.24	0.00009999999999999999	false	false
+R	cur:lant.y	Oszlop középmagassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#860	0	2.4	0.001	false	false
+R	cur:lant.w	Oszlop vastagsága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#865,app/src/main/java/x/gl/GameRenderer.kt#867	0	0.36	0.001	false	false
+R	cur:lant.h	Oszlop magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#866	0	4.8	0.01	false	false
+R	cur:lamp.y	Lámpa magassága	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#870	0	5.1	0.01	false	false
+R	cur:lamp.w	Lámpa szélessége	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#875,app/src/main/java/x/gl/GameRenderer.kt#877	0	0.72	0.001	false	false
+R	cur:lamp.h	Lámpa magassága (méret)	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#876	0	0.9	0.001	false	false
+G	0	named:app/src/main/java/x/sim/Simulation.kt:Simulation	Simulation.kt · Simulation	7
+R	app/src/main/java/x/sim/Simulation.kt#29	Titkos helyek rácsa	-	m	num	app/src/main/java/x/sim/Simulation.kt#29	0	210	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#30	Titkos hely elérési távolsága	-	m	num	app/src/main/java/x/sim/Simulation.kt#30	0	10.5	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#31	Tisztás a titkos hely körül	-	m	num	app/src/main/java/x/sim/Simulation.kt#31	0	18	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#32	Kapuk rácstávolsága	-	m	num	app/src/main/java/x/sim/Simulation.kt#32	0	270	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#34	Kapu átlépési mélysége	-	m	num	app/src/main/java/x/sim/Simulation.kt#34	0	2.7	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#35	Tisztás a kapu körül	-	m	num	app/src/main/java/x/sim/Simulation.kt#35	0	15	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#36	Kapu újraélesedése	-	s	num	app/src/main/java/x/sim/Simulation.kt#36	0	27	0.01	false	true
+E	hole	Fekete lyuk és féreglyuk	Fekete lyuk	hole	-	-
+G	0	cur:Test	Test	4
+R	cur:hole.r	Fekete lyuk sugara	-	m	num	app/src/main/java/x/sim/Simulation.kt#40	0	6.6	0.01	false	false
+R	cur:hole.h	Lebegési magasság	-	m	num	app/src/main/java/x/sim/Simulation.kt#41	0	7.8	0.01	false	false
+R	cur:hole.bobS	Lebegés sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#880	0	1.8	0.001	false	false
+R	cur:hole.bobA	Lebegés mértéke	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#881	0	0.36	0.001	false	false
+G	0	cur:Fénygyűrűk (akkréciós fátyol)	Fénygyűrűk (akkréciós fátyol)	11
+R	cur:hole.tiltX	Dőlés előre	-	rad	num	app/src/main/java/x/gl/GameRenderer.kt#891	0	3.6	0.01	false	false
+R	cur:hole.tiltAmt	Billegés mértéke	-	rad	num	app/src/main/java/x/gl/GameRenderer.kt#893	0	0.36	0.001	false	false
+R	cur:hole.tiltZ	Dőlés oldalra	-	rad	num	app/src/main/java/x/gl/GameRenderer.kt#895	0	1.05	0.001	false	false
+R	cur:hole.r1	Belső gyűrű mérete	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#902	0	30	0.1	false	false
+R	cur:hole.a1	Belső gyűrű fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#903	0	0.48	0.001	false	false
+R	cur:hole.r2	Középső gyűrű mérete	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#904	0	39	0.1	false	false
+R	cur:hole.a2	Középső gyűrű fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#905	0	0.33	0.001	false	false
+R	cur:hole.r3	Külső gyűrű mérete	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#906	0	51	0.1	false	false
+R	cur:hole.a3	Külső gyűrű fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#907	0	0.21	0.00009999999999999999	false	false
+R	cur:hole.spin	Forgás sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#908	0	2.7	0.001	false	false
+R	cur:hole.spinFall	Lassulás kifelé	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#909	0	0.84	0.001	false	false
+G	0	named:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer	GameRenderer.kt · GameRenderer	1
+R	app/src/main/java/x/gl/GameRenderer.kt#36	Egyszerre rajzolt fekete lyukak	-	db	num	app/src/main/java/x/gl/GameRenderer.kt#36	0	18	1	true	true
+G	0	named:app/src/main/java/x/sim/Simulation.kt:Simulation	Simulation.kt · Simulation	9
+R	app/src/main/java/x/sim/Simulation.kt#37	Fekete lyukak rácsa	-	m	num	app/src/main/java/x/sim/Simulation.kt#37	0	660	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#38	Fekete lyuk esélye cellánként	-	-	num	app/src/main/java/x/sim/Simulation.kt#38	0	0.9	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#39	Láthatósági távolság	-	m	num	app/src/main/java/x/sim/Simulation.kt#39	0	480	1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#42	Elnyelési sugár	-	m	num	app/src/main/java/x/sim/Simulation.kt#42	0	6.9	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#43	Tisztás a lyuk körül	-	m	num	app/src/main/java/x/sim/Simulation.kt#43	0	30	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#44	Féreglyuk-utazás hossza	-	s	num	app/src/main/java/x/sim/Simulation.kt#44	0	30	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#45	Belépés áttűnése	-	s	num	app/src/main/java/x/sim/Simulation.kt#45	0	2.1	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#46	Kilépés áttűnése	-	s	num	app/src/main/java/x/sim/Simulation.kt#46	0	3	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#47	Kilépés ideje	-	s	num	app/src/main/java/x/sim/Simulation.kt#47	0	4.2	0.01	false	true
+E	orbs	Power-up gömbök	Power-up	orbs	-	-
+G	0	cur:Üveggömb	Üveggömb	8
+R	cur:orb.alpha	Gömb átlátszatlansága	1 = teljesen átlátszatlan	-	num	app/src/main/java/x/gl/GameRenderer.kt#51	0	1.5	0.001	false	false
+R	cur:orb.base	Lebegési magasság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#687	0	3.45	0.01	false	false
+R	cur:orb.size	Gömb mérete	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#695,app/src/main/java/x/gl/GameRenderer.kt#697	0	1.26	0.001	false	false
+R	cur:orb.pulseS	Pulzálás sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#698	0	6.3	0.01	false	false
+R	cur:orb.pulseA	Pulzálás mértéke	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#699	0	0.105	0.00009999999999999999	false	false
+R	cur:orb.bobS	Lebegés sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#707	0	3.9	0.01	false	false
+R	cur:orb.bobA	Lebegés mértéke	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#709	0	0.24	0.00009999999999999999	false	false
+R	cur:orb.spin	Forgás sebessége	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#715	0	2.4	0.001	false	false
+G	0	cur:Plazmasávok a gömbben	Plazmasávok a gömbben	16
+R	cur:band1.col	1. sáv színe	-	-	color3	app/src/main/java/x/gl/GameRenderer.kt#725,app/src/main/java/x/gl/GameRenderer.kt#726,app/src/main/java/x/gl/GameRenderer.kt#727	0	0.24	0.00009999999999999999	false	false
+R	cur:band1.a	1. sáv fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#729	0	1.74	0.001	false	false
+R	cur:band1.s	1. sáv mérete	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#738,app/src/main/java/x/gl/GameRenderer.kt#739,app/src/main/java/x/gl/GameRenderer.kt#740	0	0.375	0.001	false	false
+R	cur:band1.spin	1. sáv forgása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#736	0	2.16	0.001	false	false
+R	cur:band2.col	2. sáv színe	-	-	color3	app/src/main/java/x/gl/GameRenderer.kt#741,app/src/main/java/x/gl/GameRenderer.kt#742,app/src/main/java/x/gl/GameRenderer.kt#743	0	0.6	0.001	false	false
+R	cur:band2.a	2. sáv fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#745	0	1.32	0.001	false	false
+R	cur:band2.s	2. sáv mérete	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#754,app/src/main/java/x/gl/GameRenderer.kt#755,app/src/main/java/x/gl/GameRenderer.kt#756	0	0.54	0.001	false	false
+R	cur:band2.spin	2. sáv forgása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#750	0	2.73	0.001	false	false
+R	cur:band3.col	3. sáv színe	-	-	color3	app/src/main/java/x/gl/GameRenderer.kt#757,app/src/main/java/x/gl/GameRenderer.kt#758,app/src/main/java/x/gl/GameRenderer.kt#759	0	1.86	0.001	false	false
+R	cur:band3.a	3. sáv fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#761	0	1.08	0.001	false	false
+R	cur:band3.s	3. sáv mérete	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#768,app/src/main/java/x/gl/GameRenderer.kt#769,app/src/main/java/x/gl/GameRenderer.kt#770	0	0.81	0.001	false	false
+R	cur:band3.spin	3. sáv forgása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#766	0	1.74	0.001	false	false
+R	cur:band4.col	Finom szálak színe	-	-	color3	app/src/main/java/x/gl/GameRenderer.kt#771,app/src/main/java/x/gl/GameRenderer.kt#772,app/src/main/java/x/gl/GameRenderer.kt#773	0	0.36	0.001	false	false
+R	cur:band4.a	Finom szálak fénye	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#775	0	0.9	0.001	false	false
+R	cur:band4.s	Finom szálak mérete	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#783,app/src/main/java/x/gl/GameRenderer.kt#784,app/src/main/java/x/gl/GameRenderer.kt#785	0	0.42	0.001	false	false
+R	cur:band4.spin	Finom szálak forgása	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#780	0	3.54	0.01	false	false
+G	0	cur:Sávgyűrűk alakja	Sávgyűrűk alakja	6
+R	cur:torA.R	Nagy gyűrű sugara	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#178,app/src/main/java/x/gl/GameRenderer.kt#622,app/src/main/java/x/gl/GameRenderer.kt#643	0	7.2	0.01	false	false
+R	cur:torA.r	Nagy gyűrű vastagsága	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#179,app/src/main/java/x/gl/GameRenderer.kt#623,app/src/main/java/x/gl/GameRenderer.kt#644	0	0.42	0.001	false	false
+R	cur:torB.R	Közepes gyűrű sugara	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#183,app/src/main/java/x/gl/GameRenderer.kt#627,app/src/main/java/x/gl/GameRenderer.kt#648	0	4.5	0.01	false	false
+R	cur:torB.r	Közepes gyűrű vastagsága	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#184,app/src/main/java/x/gl/GameRenderer.kt#628,app/src/main/java/x/gl/GameRenderer.kt#649	0	0.24	0.00009999999999999999	false	false
+R	cur:torC.R	Kis gyűrű sugara	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#188,app/src/main/java/x/gl/GameRenderer.kt#632,app/src/main/java/x/gl/GameRenderer.kt#653	0	2.4	0.001	false	false
+R	cur:torC.r	Kis gyűrű vastagsága	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#189,app/src/main/java/x/gl/GameRenderer.kt#633,app/src/main/java/x/gl/GameRenderer.kt#654	0	0.3	0.001	false	false
+G	0	named:app/src/main/java/x/sim/Simulation.kt:Simulation	Simulation.kt · Simulation	15
+R	app/src/main/java/x/sim/Simulation.kt#10	Első power-up távolsága	-	m	num	app/src/main/java/x/sim/Simulation.kt#10	0	300	1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#11	Power-up hatásideje	-	s	num	app/src/main/java/x/sim/Simulation.kt#11	0	15	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#12	Power-upok távolsága	-	m	num	app/src/main/java/x/sim/Simulation.kt#12	0	360	1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#13	Shockwave full	-	-	num	app/src/main/java/x/sim/Simulation.kt#13	0	18	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#14	Lökéshullám elérése (arány)	-	-	num	app/src/main/java/x/sim/Simulation.kt#14	0	2.25	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#15	Lökéshullám oldalt	-	m	num	app/src/main/java/x/sim/Simulation.kt#15	0	21	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#16	Lökéshullám szétterülése	-	-	num	app/src/main/java/x/sim/Simulation.kt#16	0	3.75	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#17	Egy hullám ideje	-	s	num	app/src/main/java/x/sim/Simulation.kt#17	0	4.5	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#18	Hullámok közti idő	-	s	num	app/src/main/java/x/sim/Simulation.kt#18	0	4.8	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#19	Hullámgyűrűk száma	-	db	num	app/src/main/java/x/sim/Simulation.kt#19	0	9	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#20	Shockwave lookahead #1	-	-	num	app/src/main/java/x/sim/Simulation.kt#20	0	1.35	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#21	Shockwave lookahead #2	-	-	num	app/src/main/java/x/sim/Simulation.kt#21	0	2.16	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#22	Shockwave lookahead #3	-	-	num	app/src/main/java/x/sim/Simulation.kt#22	0	3	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#23	Fák feloldódása	-	s	num	app/src/main/java/x/sim/Simulation.kt#23	0	2.4	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#24	Lökés véglegesítése	-	s	num	app/src/main/java/x/sim/Simulation.kt#24	0	1.05	0.001	false	true
+E	colors	Színek	Színek	world	-	-
+E	lights	Fények és ég	Fények	world	-	-
+E	graphics	Grafika	Grafika	world	-	-
+G	0	named:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer	GameRenderer.kt · GameRenderer	39
+R	app/src/main/java/x/gl/GameRenderer.kt#0	Lombkorona részletessége közel	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#0	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#1	Lombkorona részletessége távol	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#1	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#2	Lombkorona váltási távolság	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#2	0	66	0.1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#3	Árnyékvető fák sugara	-	cella	num	app/src/main/java/x/gl/GameRenderer.kt#3	0	66	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#4	Max props #1	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#4	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#5	Max props #2	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#5	0	4	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#6	Max props #3	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#6	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#7	Max props #4	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#7	0	4	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#8	Ground step #1	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#8	0	600	1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#9	Ground step #2	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#9	0	336	1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#35	Tree parts	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#35	0	9	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#37	Spórák száma	-	db	num	app/src/main/java/x/gl/GameRenderer.kt#37	0	144	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#38	Maradványok száma	-	db	num	app/src/main/java/x/gl/GameRenderer.kt#38	0	78	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#39	Remnant span	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#39	0	270	0.1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#40	Látható ablak	-	m	num	app/src/main/java/x/gl/GameRenderer.kt#40	0	300	1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#41	Sheet n	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#41	0	33	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#42	Ring n	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#42	0	168	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#43	Worm counts #1	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#43	0	780	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#44	Worm counts #2	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#44	0	9	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#45	Worm counts #3	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#45	0	15	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#46	Rem counts #1	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#46	0	210	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#47	Rem counts #2	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#47	0	4	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#48	Rem counts #3	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#48	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#49	Látószög	-	°	num	app/src/main/java/x/gl/GameRenderer.kt#49	0	216	0.1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#50	Flat facets	-	-	bool	app/src/main/java/x/gl/GameRenderer.kt#50	0	1	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#52	Renderelési felbontás	-	×	num	app/src/main/java/x/gl/GameRenderer.kt#52	0	1.5	0.001	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#53	Adaptive scale	-	-	bool	app/src/main/java/x/gl/GameRenderer.kt#53	0	1	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#54	Legkisebb fasűrűség	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#54	0	3	0.01	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#55	Kezdő fasűrűség	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#55	0	4.5	0.01	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#56	Tree sway	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#56	0	0.45	0.001	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#57	Árnyék frissítése (képkockánként)	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#57	0	6	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#103	B glow	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#103	0	768	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#104	B glow fog	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#104	0	192	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#105	B mist	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#105	0	48	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#106	B spore	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#106	0	384	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#107	B hole	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#107	0	4800	1	true	true
+R	app/src/main/java/x/gl/GameRenderer.kt#111	Shadow fade start	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#111	0	300	1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#112	Shadow fade end	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#112	0	354	1	false	true
+R	app/src/main/java/x/gl/GameRenderer.kt#113	One	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#113	0	48	1	true	true
+G	0	named:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Sprites	GameRenderer.kt · GameRenderer.Sprites	1
+R	app/src/main/java/x/gl/GameRenderer.kt#96	Data	-	-	num	app/src/main/java/x/gl/GameRenderer.kt#96	0	30	1	true	true
+G	0	named:app/src/main/java/x/gl/Quality.kt:Quality	Quality.kt · Quality	1
+R	app/src/main/java/x/gl/Quality.kt#2	Fx neutral	-	-	num	app/src/main/java/x/gl/Quality.kt#2	0	3	0.01	false	true
+G	0	named:app/src/main/java/x/gl/Shaders.kt:Shaders.LIT_FS	Shader állandók – Shaders.LIT_FS	1
+R	app/src/main/java/x/gl/Shaders.kt#63	Pi	-	-	num	app/src/main/java/x/gl/Shaders.kt#63	0	9.42478	0.01	false	true
+E	gameplay	Játékmenet	Játékmenet	world	-	-
+G	0	named:app/src/main/java/x/sim/Simulation.kt:Simulation	Simulation.kt · Simulation	24
+R	app/src/main/java/x/sim/Simulation.kt#0	Erdőrács cellamérete	-	m	num	app/src/main/java/x/sim/Simulation.kt#0	0	18	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#1	Látható cellák sugara	-	cella	num	app/src/main/java/x/sim/Simulation.kt#1	0	39	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#2	Köd vége	-	m	num	app/src/main/java/x/sim/Simulation.kt#2	0	114	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#3	Legnagyobb irányszög	-	°	num	app/src/main/java/x/sim/Simulation.kt#3	0	112.5	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#4	Max heading #2	-	-	num	app/src/main/java/x/sim/Simulation.kt#4	0	540	1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#5	Ütközés hossza	-	s	num	app/src/main/java/x/sim/Simulation.kt#5	0	1.5	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#6	Ütközések a bukásig	-	db	num	app/src/main/java/x/sim/Simulation.kt#6	0	9	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#7	Megállás lassítása	-	s	num	app/src/main/java/x/sim/Simulation.kt#7	0	2.1	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#8	Folytatás ideje	-	s	num	app/src/main/java/x/sim/Simulation.kt#8	0	3.9	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#9	Kilépés ideje	-	s	num	app/src/main/java/x/sim/Simulation.kt#9	0	2.7	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#25	Túlélés: sötétedés kezdete	-	s	num	app/src/main/java/x/sim/Simulation.kt#25	0	30	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#26	Fények kialvása	-	s	num	app/src/main/java/x/sim/Simulation.kt#26	0	3.6	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#27	Sötét szünet	-	s	num	app/src/main/java/x/sim/Simulation.kt#27	0	5.25	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#28	Szabad mód fordulási sebesség	-	-	num	app/src/main/java/x/sim/Simulation.kt#28	0	4.5	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#60	Alapsebesség	-	m/s	num	app/src/main/java/x/sim/Simulation.kt#60	0	25.2	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#61	Lépésritmus	-	-	num	app/src/main/java/x/sim/Simulation.kt#61	0	33	0.1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#62	Legnagyobb lépésszorzó	-	×	num	app/src/main/java/x/sim/Simulation.kt#62	0	4.2	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#63	Akadálysűrűség	-	-	num	app/src/main/java/x/sim/Simulation.kt#63	0	1.5	0.001	false	true
+R	app/src/main/java/x/sim/Simulation.kt#363	Döntés: beállási idő	-	ms	num	app/src/main/java/x/sim/Simulation.kt#363	0	1500	1	false	true
+R	app/src/main/java/x/sim/Simulation.kt#364	Döntés: minták	-	db	num	app/src/main/java/x/sim/Simulation.kt#364	0	18	1	true	true
+R	app/src/main/java/x/sim/Simulation.kt#365	Döntés: nyugalmi küszöb	-	-	num	app/src/main/java/x/sim/Simulation.kt#365	0	0.24	0.00009999999999999999	false	true
+R	app/src/main/java/x/sim/Simulation.kt#366	Döntés: kényszerített kalibrálás	-	ms	num	app/src/main/java/x/sim/Simulation.kt#366	0	4500	10	false	true
+R	app/src/main/java/x/sim/Simulation.kt#367	Döntés: ütköző	-	-	num	app/src/main/java/x/sim/Simulation.kt#367	0	3.6	0.01	false	true
+R	app/src/main/java/x/sim/Simulation.kt#368	Döntés: ütköző ideje	-	ms	num	app/src/main/java/x/sim/Simulation.kt#368	0	3600	10	false	true
+E	sound	Hang	Hang	world	-	-
+E	other	Egyéb	Egyéb	world	-	-
+E	code	Kód – minden szám	Kód	world	-	-
+G	0	code:app/src/main/java/x/gl/GameRenderer.kt	GameRenderer.kt (1591 szám)	0
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer	GameRenderer	145
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Sprites	GameRenderer.Sprites	3
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Sprites.clear	GameRenderer.Sprites.clear	1
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Sprites.add	GameRenderer.Sprites.add	3
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.onSurfaceCreated	GameRenderer.onSurfaceCreated	90
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.onSurfaceChanged	GameRenderer.onSurfaceChanged	5
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.onDrawFrame	GameRenderer.onDrawFrame	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.material	GameRenderer.material	5
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.rebuildProps	GameRenderer.rebuildProps	8
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.sporeProfile	GameRenderer.sporeProfile	10
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.treeProp	GameRenderer.treeProp	39
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.obstacleProp	GameRenderer.obstacleProp	12
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.draw	GameRenderer.draw	186
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.saturate	GameRenderer.saturate	3
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.scene	GameRenderer.scene	8
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.holeScreen	GameRenderer.holeScreen	18
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.pickOccluders	GameRenderer.pickOccluders	20
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.updateLocalLights	GameRenderer.updateLocalLights	45
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.clockHours	GameRenderer.clockHours	2
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.applyQuality	GameRenderer.applyQuality	11
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.rebuildTierMeshes	GameRenderer.rebuildTierMeshes	52
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.shadowPass	GameRenderer.shadowPass	6
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.uploadOne	GameRenderer.uploadOne	5
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.prim	GameRenderer.prim	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.additiveVeil	GameRenderer.additiveVeil	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.drawLandmarks	GameRenderer.drawLandmarks	191
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.drawHoles	GameRenderer.drawHoles	37
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.relic	GameRenderer.relic	183
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.relicGlow	GameRenderer.relicGlow	11
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.smooth01	GameRenderer.smooth01	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.bounce	GameRenderer.bounce	20
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.paintSpores	GameRenderer.paintSpores	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.emitSpores	GameRenderer.emitSpores	86
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.put	GameRenderer.put	3
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.drawRelics	GameRenderer.drawRelics	66
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.visible	GameRenderer.visible	2
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.farCrownKind	GameRenderer.farCrownKind	1
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.emit	GameRenderer.emit	2
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.fillInstances	GameRenderer.fillInstances	57
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.smoothRange	GameRenderer.smoothRange	4
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.buildSprites	GameRenderer.buildSprites	195
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.drawSprites	GameRenderer.drawSprites	3
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Scaler	GameRenderer.Scaler	6
+G	1	code:app/src/main/java/x/gl/GameRenderer.kt:GameRenderer.Scaler.tick	GameRenderer.Scaler.tick	27
+G	0	code:app/src/main/java/x/gl/Meshes.kt	Meshes.kt (943 szám)	0
+G	1	code:app/src/main/java/x/gl/Meshes.kt:MeshData	MeshData	1
+G	1	code:app/src/main/java/x/gl/Meshes.kt:MeshData.computeNormals	MeshData.computeNormals	4
+G	1	code:app/src/main/java/x/gl/Meshes.kt:MeshData.computeFlatNormals	MeshData.computeFlatNormals	9
+G	1	code:app/src/main/java/x/gl/Meshes.kt:MeshData.forEachVertex	MeshData.forEachVertex	1
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.cylinder	Geo.cylinder	18
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.icosphere	Geo.icosphere	91
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.mid	Geo.mid	5
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.polyhedron	Geo.polyhedron	103
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.box	Geo.box	40
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.flatQuad	Geo.flatQuad	26
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.quadXY	Geo.quadXY	26
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.torus	Geo.torus	17
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.trunk	Geo.trunk	40
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.root	Geo.root	15
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.branch	Geo.branch	13
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.finishTube	Geo.finishTube	22
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo	Geo	8
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.trunkLifelike	Geo.trunkLifelike	58
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.rootLifelike	Geo.rootLifelike	26
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.sweptTube	Geo.sweptTube	23
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.markAsBranch	Geo.markAsBranch	2
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.branchRound	Geo.branchRound	11
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.mergeTreeParts	Geo.mergeTreeParts	9
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.treeBodyLegacy	Geo.treeBodyLegacy	210
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.add	Geo.add	2
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.crownRadius	Geo.crownRadius	19
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.insideLobe	Geo.insideLobe	6
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.pruneBuriedCrowns	Geo.pruneBuriedCrowns	13
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.treeCanopy	Geo.treeCanopy	87
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.crown	Geo.crown	3
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.jittered	Geo.jittered	6
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Geo.groundGrid	Geo.groundGrid	14
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Mesh.init	Mesh.init	12
+G	1	code:app/src/main/java/x/gl/Meshes.kt:Mesh.draw	Mesh.draw	3
+G	0	code:app/src/main/java/x/gl/Quality.kt	Quality.kt (57 szám)	0
+G	1	code:app/src/main/java/x/gl/Quality.kt:FxTuning	FxTuning	2
+G	1	code:app/src/main/java/x/gl/Quality.kt:Quality	Quality	1
+G	1	code:app/src/main/java/x/gl/Quality.kt:Features	Features	53
+G	1	code:app/src/main/java/x/gl/Quality.kt:Features.postDefines	Features.postDefines	1
+G	0	code:app/src/main/java/x/gl/Shaders.kt	Shaders.kt (937 szám)	0
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.SUN_GAP_FN	Shaders.SUN_GAP_FN	24
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.WIND_FN	Shaders.WIND_FN	15
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.LIT_VS	Shaders.LIT_VS	1
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.GROUND_VS	Shaders.GROUND_VS	7
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.LIT_FS	Shaders.LIT_FS	356
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.SHADOW_VS	Shaders.SHADOW_VS	1
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.SPRITE_VS	Shaders.SPRITE_VS	28
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.SPRITE_FS	Shaders.SPRITE_FS	13
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.POST_VS	Shaders.POST_VS	6
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.postFs	Shaders.postFs	374
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.SSAO_FS	Shaders.SSAO_FS	49
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.AO_BLUR_FS	Shaders.AO_BLUR_FS	13
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.BLOOM_DOWN_FS	Shaders.BLOOM_DOWN_FS	40
+G	1	code:app/src/main/java/x/gl/Shaders.kt:Shaders.BLOOM_UP_FS	Shaders.BLOOM_UP_FS	10
+G	0	code:app/src/main/java/x/sim/Simulation.kt	Simulation.kt (417 szám)	0
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation	Simulation	122
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.levelOf	Simulation.levelOf	12
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.hash	Simulation.hash	7
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.groundHeight	Simulation.groundHeight	19
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.surviveStage	Simulation.surviveStage	1
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.forestLightsAround	Simulation.forestLightsAround	11
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.shockwaveReach	Simulation.shockwaveReach	2
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.placePowerUp	Simulation.placePowerUp	5
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.collectPowerUp	Simulation.collectPowerUp	2
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.secretsAround	Simulation.secretsAround	11
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.gatesAround	Simulation.gatesAround	11
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.passGate	Simulation.passGate	3
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.holesAround	Simulation.holesAround	11
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.holeExit	Simulation.holeExit	3
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.warpEnvelope	Simulation.warpEnvelope	4
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.enterHole	Simulation.enterHole	3
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.exitWarp	Simulation.exitWarp	6
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.treesAround	Simulation.treesAround	5
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.obstaclesAround	Simulation.obstaclesAround	6
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.sporeOpacity	Simulation.sporeOpacity	9
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.reset	Simulation.reset	23
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.collide	Simulation.collide	23
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.collideObstacle	Simulation.collideObstacle	8
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.inShockwave	Simulation.inShockwave	2
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.shockwaveHit	Simulation.shockwaveHit	5
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.sweepShockwave	Simulation.sweepShockwave	4
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.requestPause	Simulation.requestPause	1
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.requestResume	Simulation.requestResume	1
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.requestExit	Simulation.requestExit	1
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.timeScale	Simulation.timeScale	6
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.stepSimulation	Simulation.stepSimulation	40
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.getSteering	Simulation.getSteering	4
+G	1	code:app/src/main/java/x/sim/Simulation.kt:TiltCal	TiltCal	7
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.resetTilt	Simulation.resetTilt	3
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.updateTilt	Simulation.updateTilt	13
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.tiltFromGravity	Simulation.tiltFromGravity	7
+G	1	code:app/src/main/java/x/sim/Simulation.kt:Simulation.cyclePos	Simulation.cyclePos	16
+C	gate.half	app/src/main/java/x/sim/Simulation.kt#33
+C	gate.postOut	app/src/main/java/x/gl/GameRenderer.kt#793
+C	gate.postY	app/src/main/java/x/gl/GameRenderer.kt#794
+C	gate.postW	app/src/main/java/x/gl/GameRenderer.kt#799
+C	gate.postH	app/src/main/java/x/gl/GameRenderer.kt#800
+C	gate.postD	app/src/main/java/x/gl/GameRenderer.kt#801
+C	gate.lintelY	app/src/main/java/x/gl/GameRenderer.kt#803
+C	gate.lintelOver	app/src/main/java/x/gl/GameRenderer.kt#809
+C	gate.lintelH	app/src/main/java/x/gl/GameRenderer.kt#810
+C	gate.lintelD	app/src/main/java/x/gl/GameRenderer.kt#811
+C	gate.emis	app/src/main/java/x/gl/GameRenderer.kt#788
+C	gate.rough	app/src/main/java/x/gl/GameRenderer.kt#789
+C	gate.metal	app/src/main/java/x/gl/GameRenderer.kt#790
+C	gate.veilA	app/src/main/java/x/gl/GameRenderer.kt#814
+C	gate.veilSpeed	app/src/main/java/x/gl/GameRenderer.kt#815
+C	gate.veilAmt	app/src/main/java/x/gl/GameRenderer.kt#817
+C	gate.veilH	app/src/main/java/x/gl/GameRenderer.kt#819
+C	gate.veilY	app/src/main/java/x/gl/GameRenderer.kt#820
+C	gate.glowY	app/src/main/java/x/gl/GameRenderer.kt#1528
+C	gate.glowSize	app/src/main/java/x/gl/GameRenderer.kt#1529,app/src/main/java/x/gl/GameRenderer.kt#1530
+C	gate.glowA	app/src/main/java/x/gl/GameRenderer.kt#1531
+C	col.ember	
+C	col.pursuer	
+C	mono.y	app/src/main/java/x/gl/GameRenderer.kt#825
+C	mono.rot	app/src/main/java/x/gl/GameRenderer.kt#828
+C	mono.w	app/src/main/java/x/gl/GameRenderer.kt#830
+C	mono.h	app/src/main/java/x/gl/GameRenderer.kt#831
+C	mono.d	app/src/main/java/x/gl/GameRenderer.kt#832
+C	mono.emis	app/src/main/java/x/gl/GameRenderer.kt#821
+C	mono.stripY	app/src/main/java/x/gl/GameRenderer.kt#835
+C	mono.stripW	app/src/main/java/x/gl/GameRenderer.kt#840
+C	mono.stripH	app/src/main/java/x/gl/GameRenderer.kt#841
+C	mono.glowSize	app/src/main/java/x/gl/GameRenderer.kt#1488
+C	mono.glowH	app/src/main/java/x/gl/GameRenderer.kt#1489
+C	mono.glowA	app/src/main/java/x/gl/GameRenderer.kt#1491
+C	col.secret	
+C	ring.count	app/src/main/java/x/gl/GameRenderer.kt#845,app/src/main/java/x/gl/GameRenderer.kt#846
+C	ring.spin	app/src/main/java/x/gl/GameRenderer.kt#848
+C	ring.r	app/src/main/java/x/gl/GameRenderer.kt#849,app/src/main/java/x/gl/GameRenderer.kt#851
+C	ring.y	app/src/main/java/x/gl/GameRenderer.kt#850
+C	ring.w	app/src/main/java/x/gl/GameRenderer.kt#855,app/src/main/java/x/gl/GameRenderer.kt#857
+C	ring.h	app/src/main/java/x/gl/GameRenderer.kt#856
+C	col.green	
+C	lant.tilt	app/src/main/java/x/gl/GameRenderer.kt#864
+C	lant.y	app/src/main/java/x/gl/GameRenderer.kt#860
+C	lant.w	app/src/main/java/x/gl/GameRenderer.kt#865,app/src/main/java/x/gl/GameRenderer.kt#867
+C	lant.h	app/src/main/java/x/gl/GameRenderer.kt#866
+C	lamp.y	app/src/main/java/x/gl/GameRenderer.kt#870
+C	lamp.w	app/src/main/java/x/gl/GameRenderer.kt#875,app/src/main/java/x/gl/GameRenderer.kt#877
+C	lamp.h	app/src/main/java/x/gl/GameRenderer.kt#876
+C	col.lamp	
+C	hole.r	app/src/main/java/x/sim/Simulation.kt#40
+C	hole.h	app/src/main/java/x/sim/Simulation.kt#41
+C	hole.bobS	app/src/main/java/x/gl/GameRenderer.kt#880
+C	hole.bobA	app/src/main/java/x/gl/GameRenderer.kt#881
+C	hole.tiltX	app/src/main/java/x/gl/GameRenderer.kt#891
+C	hole.tiltAmt	app/src/main/java/x/gl/GameRenderer.kt#893
+C	hole.tiltZ	app/src/main/java/x/gl/GameRenderer.kt#895
+C	hole.r1	app/src/main/java/x/gl/GameRenderer.kt#902
+C	hole.a1	app/src/main/java/x/gl/GameRenderer.kt#903
+C	hole.r2	app/src/main/java/x/gl/GameRenderer.kt#904
+C	hole.a2	app/src/main/java/x/gl/GameRenderer.kt#905
+C	hole.r3	app/src/main/java/x/gl/GameRenderer.kt#906
+C	hole.a3	app/src/main/java/x/gl/GameRenderer.kt#907
+C	hole.spin	app/src/main/java/x/gl/GameRenderer.kt#908
+C	hole.spinFall	app/src/main/java/x/gl/GameRenderer.kt#909
+C	col.lavender	
+C	col.purple	
+C	col.secretHole	
+C	orb.alpha	app/src/main/java/x/gl/GameRenderer.kt#51
+C	orb.base	app/src/main/java/x/gl/GameRenderer.kt#687
+C	orb.size	app/src/main/java/x/gl/GameRenderer.kt#695,app/src/main/java/x/gl/GameRenderer.kt#697
+C	orb.pulseS	app/src/main/java/x/gl/GameRenderer.kt#698
+C	orb.pulseA	app/src/main/java/x/gl/GameRenderer.kt#699
+C	orb.bobS	app/src/main/java/x/gl/GameRenderer.kt#707
+C	orb.bobA	app/src/main/java/x/gl/GameRenderer.kt#709
+C	orb.spin	app/src/main/java/x/gl/GameRenderer.kt#715
+C	col.freezer	
+C	col.ghost	
+C	col.shock	
+C	band1.col	app/src/main/java/x/gl/GameRenderer.kt#725,app/src/main/java/x/gl/GameRenderer.kt#726,app/src/main/java/x/gl/GameRenderer.kt#727
+C	band1.a	app/src/main/java/x/gl/GameRenderer.kt#729
+C	band1.s	app/src/main/java/x/gl/GameRenderer.kt#738,app/src/main/java/x/gl/GameRenderer.kt#739,app/src/main/java/x/gl/GameRenderer.kt#740
+C	band1.spin	app/src/main/java/x/gl/GameRenderer.kt#736
+C	band2.col	app/src/main/java/x/gl/GameRenderer.kt#741,app/src/main/java/x/gl/GameRenderer.kt#742,app/src/main/java/x/gl/GameRenderer.kt#743
+C	band2.a	app/src/main/java/x/gl/GameRenderer.kt#745
+C	band2.s	app/src/main/java/x/gl/GameRenderer.kt#754,app/src/main/java/x/gl/GameRenderer.kt#755,app/src/main/java/x/gl/GameRenderer.kt#756
+C	band2.spin	app/src/main/java/x/gl/GameRenderer.kt#750
+C	band3.col	app/src/main/java/x/gl/GameRenderer.kt#757,app/src/main/java/x/gl/GameRenderer.kt#758,app/src/main/java/x/gl/GameRenderer.kt#759
+C	band3.a	app/src/main/java/x/gl/GameRenderer.kt#761
+C	band3.s	app/src/main/java/x/gl/GameRenderer.kt#768,app/src/main/java/x/gl/GameRenderer.kt#769,app/src/main/java/x/gl/GameRenderer.kt#770
+C	band3.spin	app/src/main/java/x/gl/GameRenderer.kt#766
+C	band4.col	app/src/main/java/x/gl/GameRenderer.kt#771,app/src/main/java/x/gl/GameRenderer.kt#772,app/src/main/java/x/gl/GameRenderer.kt#773
+C	band4.a	app/src/main/java/x/gl/GameRenderer.kt#775
+C	band4.s	app/src/main/java/x/gl/GameRenderer.kt#783,app/src/main/java/x/gl/GameRenderer.kt#784,app/src/main/java/x/gl/GameRenderer.kt#785
+C	band4.spin	app/src/main/java/x/gl/GameRenderer.kt#780
+C	torA.R	app/src/main/java/x/gl/GameRenderer.kt#178,app/src/main/java/x/gl/GameRenderer.kt#622,app/src/main/java/x/gl/GameRenderer.kt#643
+C	torA.r	app/src/main/java/x/gl/GameRenderer.kt#179,app/src/main/java/x/gl/GameRenderer.kt#623,app/src/main/java/x/gl/GameRenderer.kt#644
+C	torB.R	app/src/main/java/x/gl/GameRenderer.kt#183,app/src/main/java/x/gl/GameRenderer.kt#627,app/src/main/java/x/gl/GameRenderer.kt#648
+C	torB.r	app/src/main/java/x/gl/GameRenderer.kt#184,app/src/main/java/x/gl/GameRenderer.kt#628,app/src/main/java/x/gl/GameRenderer.kt#649
+C	torC.R	app/src/main/java/x/gl/GameRenderer.kt#188,app/src/main/java/x/gl/GameRenderer.kt#632,app/src/main/java/x/gl/GameRenderer.kt#653
+C	torC.r	app/src/main/java/x/gl/GameRenderer.kt#189,app/src/main/java/x/gl/GameRenderer.kt#633,app/src/main/java/x/gl/GameRenderer.kt#654
